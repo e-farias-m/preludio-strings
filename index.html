@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Preludio Strings</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0E0D1C" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <script>
+    // Apply the saved theme before first paint to avoid a flash of the wrong palette.
+    (function () {
+      var theme = 'light';
+      try {
+        // One-time migration: preludioBand* -> preludioStrings* (project rename).
+        ['FirstSound','ImportedSongs','Instrument','Lang','Motivation','Name','Progress','SongSpeed','Theme','Tutorials'].forEach(function(k) {
+          var ok = 'preludioBand' + k, nk = 'preludioStrings' + k;
+          var v = localStorage.getItem(ok);
+          if (v !== null) {
+            if (localStorage.getItem(nk) === null) localStorage.setItem(nk, v);
+            localStorage.removeItem(ok);
+          }
+        });
+      } catch (e) {}
+      try { theme = localStorage.getItem('preludioStringsTheme') || 'light'; } catch (e) {}
+      document.documentElement.setAttribute('data-theme', theme);
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#F5F4FB' : '#0E0D1C');
+    })();
+  </script>
+</head>
+<body>
+  <div id="app">
+    <!-- Screens are injected by app.js -->
+  </div>
+
+  <!-- Floating metronome/tuner widget (outside #app so it persists) -->
+  <div id="tool-widget" class="tool-widget"></div>
+
+  <!-- Toast container -->
+  <div id="toast" class="toast" aria-live="polite"></div>
+
+  <!-- Fingering-abbreviation explainer (tap to dismiss) -->
+  <div id="fingering-help" class="fingering-help" data-action="close-fingering-help" role="status" aria-live="polite"></div>
+
+  <script src="js/curriculum.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/graphics.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</body>
+</html>

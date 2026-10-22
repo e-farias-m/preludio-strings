@@ -1,0 +1,27 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # Run every suite even if an earlier one fails, so a single push shows
+      # all of the problems at once.
+      - name: Run test suites
+        run: |
+          status=0
+          node test-curriculum.js || status=1
+          node test-app.js || status=1
+          node test-graphics.js || status=1
+          node test-musicxml.js || status=1
+          node test-i18n.js || status=1
+          node test-i18n-ui.js || status=1
+          exit $status
