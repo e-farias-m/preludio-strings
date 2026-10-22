@@ -20,13 +20,16 @@ const Graphics = (() => {
 
   function yForPos(pos) { return STAFF_BOTTOM_Y - pos * HALF; }
 
+  // Ledger lines are drawn for the line positions between the staff and the
+  // notehead, never past it: a note in a space hangs off the last line above
+  // it (G3 needs C4 and A3, not an extra line at F3 under the head).
   function ledgerPositions(pos) {
     const out = [];
     if (pos > 8) {
       const maxL = (pos % 2 === 0) ? pos : pos - 1;
       for (let p = 10; p <= maxL; p += 2) out.push(p);
     } else if (pos < -1) {
-      const minL = (pos % 2 === 0) ? pos : pos - 1;
+      const minL = (pos % 2 === 0) ? pos : pos + 1;
       for (let p = -2; p >= minL; p -= 2) out.push(p);
     }
     return out;

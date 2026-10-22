@@ -147,6 +147,33 @@ check(diagrams > 0, 'no fingerboard diagrams rendered');
   check(melody.includes('&#119074;'), 'the melody staff should draw the bass clef');
 }
 
+// ── Ledger lines stop at the notehead ──────────────────────────────────────
+// A note in a space hangs off the last line above it; nothing is drawn past
+// the head. G3, the violin's first note, is the space under the A3 ledger
+// line, so it gets C4 and A3 — not an extra line at F3 underneath.
+{
+  const cases = [
+    [-2, [-2]], [-3, [-2]], [-4, [-2, -4]], [-5, [-2, -4]], [-6, [-2, -4, -6]],
+    [-1, []], [0, []], [8, []], [9, []], [10, [10]], [11, [10]], [12, [10, 12]],
+  ];
+  for (const [pos, want] of cases) {
+    const got = Graphics.ledgerPositions(pos);
+    check(JSON.stringify(got) === JSON.stringify(want),
+      `pos ${pos} should have ledger lines ${JSON.stringify(want)}, got ${JSON.stringify(got)}`);
+  }
+
+  const g3 = Graphics.staffSVG({ pos: -5, clef: 'treble', accentColor: '#F2C24E', width: 130 });
+  const ledgerYs = [...g3.matchAll(/<line x1="[\d.]+" y1="([\d.]+)" x2="[\d.]+" y2="[\d.]+" stroke="var\(--dg-ink\)" stroke-width="1.5"\/>/g)]
+    .map(m => Number(m[1]));
+  // Staff lines sit on 140..76; the ledger lines are the ones below 140.
+  const below = ledgerYs.filter(y => y > 140).sort((a, b) => a - b);
+  check(JSON.stringify(below) === JSON.stringify([156, 172]),
+    `G3 should get exactly the C4 and A3 ledger lines (got y=${JSON.stringify(below)})`);
+
+  const noteY = 140 - (-5) * 8;
+  check(!below.some(y => y > noteY), 'G3 should not have a ledger line under the notehead');
+}
+
 // ── Home-screen icons render for every instrument ──────────────────────────
 for (const inst of Object.values(CURRICULUM)) {
   const icon = Graphics.instrumentIconSVG(inst.id, 56);

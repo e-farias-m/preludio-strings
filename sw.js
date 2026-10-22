@@ -1,4 +1,4 @@
-const CACHE = 'preludio-strings-v1';
+const CACHE = 'preludio-strings-v2';
 // Relative to the service worker's own folder, so the app works from a
 // project page (user.github.io/repo/) as well as from a domain root.
 const FILES = [
