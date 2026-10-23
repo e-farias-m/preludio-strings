@@ -320,7 +320,7 @@ api.APP.instrumentId = 'violin';
   check(heads === song.noteIds.length,
     `the whole melody is drawn (expected ${song.noteIds.length} noteheads, got ${heads})`);
   check(html.includes('Sheet music'), 'the melody panel is labelled');
-  check((melody.match(/&#119070;/g) || []).length >= 2, 'a long melody wraps onto more than one staff');
+  check((melody.match(/class="clef clef-treble"/g) || []).length >= 2, 'a long melody wraps onto more than one staff');
 
   // Advancing the song moves the highlight (accent colour) to the next note.
   api.APP.songNoteIndex = 3;

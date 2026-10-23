@@ -129,62 +129,64 @@ check(diagrams > 0, 'no fingerboard diagrams rendered');
 // treble clef's spiral on the G line, the alto clef's arrow heads on the
 // middle line, the bass clef's dots around the F line.
 {
-  check(Graphics.CLEF_METRICS.treble.refPos === 2, 'the treble clef should point at the G line');
-  check(Graphics.CLEF_METRICS.alto.refPos === 4, 'the alto clef should point at the middle line');
-  check(Graphics.CLEF_METRICS.bass.refPos === 6, 'the bass clef should point at the F line');
-  check(Graphics.CLEF_METRICS.treble.code === 119070, 'the treble clef glyph is U+1D11E');
-  check(Graphics.CLEF_METRICS.alto.code === 119073, 'the alto clef glyph is U+1D121');
-  check(Graphics.CLEF_METRICS.bass.code === 119074, 'the bass clef glyph is U+1D122');
+  check(Graphics.CLEF_GLYPH.treble.refPos === 2, 'the treble clef should point at the G line');
+  check(Graphics.CLEF_GLYPH.alto.refPos === 4, 'the alto clef should point at the middle line');
+  check(Graphics.CLEF_GLYPH.bass.refPos === 6, 'the bass clef should point at the F line');
 
-  // The clef's baseline is derived from its reference line, not hard-coded.
+  // The clefs are vector paths (not font glyphs), so the reference line is the
+  // path's origin and the transform's y is exactly the staff line it names.
   const staff = Graphics.staffSVG({ pos: 4, clef: 'alto', accentColor: '#F2C24E', width: 130 });
-  check(staff.includes('&#119073;'), 'the staff should draw the alto clef');
-  const y = Number((staff.match(/<text[^>]*y="([\d.]+)"[^>]*>&#119073;<\/text>/) || [])[1]);
-  const expected = 108 + Graphics.CLEF_METRICS.alto.refEm * Graphics.CLEF_METRICS.alto.fs;
-  check(Math.abs(y - expected) < 0.6, `the alto clef should be placed from the middle line (expected y≈${expected.toFixed(1)}, got ${y})`);
+  const tag = (staff.match(/<path class="clef clef-alto"[^>]*\/>/) || [])[0] || '';
+  check(tag.includes('clef-alto'), 'the staff should draw the alto clef');
+  const ty = Number((tag.match(/translate\([-\d.]+ ([-\d.]+)\)/) || [])[1]);
+  check(Math.abs(ty - Graphics.yForPos(4)) < 0.01,
+    `the alto clef's origin should sit on the middle line (want ${Graphics.yForPos(4)}, got ${ty})`);
 
   const melody = Graphics.melodySVG({ notes: [{ pos: 4, duration: 1 }], clef: 'bass', accentColor: '#5FC9E8' });
-  check(melody.includes('&#119074;'), 'the melody staff should draw the bass clef');
+  check(/<path class="clef clef-bass"/.test(melody), 'the melody staff should draw the bass clef');
 }
 
 // ── The clefs are engraved at full size and point at the right line ────────
+// The outlines are Bravura's (250 units per staff space), embedded as paths so
+// the clefs look identical on macOS, Windows and Linux instead of depending on
+// whatever music font the OS happens to provide.
 {
   const SPACE = 16; // px between two staff lines
   const STAFF_LINES = Graphics.CLEF_SPACES;
 
-  // Standard heights: a G clef spans 7.02 staff spaces, C and F clefs 5.26.
-  check(STAFF_LINES.treble === 7.02, 'the treble clef should be 7.02 staff spaces tall');
-  check(STAFF_LINES.alto === 5.26, 'the alto clef should be 5.26 staff spaces tall');
-  check(STAFF_LINES.bass === 5.26, 'the bass clef should be 5.26 staff spaces tall');
+  // Heights in staff spaces, straight from Bravura's outlines: the G clef
+  // spans the whole staff plus its flourishes, the C and F clefs sit within it.
+  check(Math.abs(STAFF_LINES.treble - 7.024) < 0.001, `the treble clef should be 7.02 staff spaces tall (got ${STAFF_LINES.treble})`);
+  check(Math.abs(STAFF_LINES.alto - 4.048) < 0.001, `the alto clef should be 4.05 staff spaces tall (got ${STAFF_LINES.alto})`);
+  check(Math.abs(STAFF_LINES.bass - 3.588) < 0.001, `the bass clef should be 3.59 staff spaces tall (got ${STAFF_LINES.bass})`);
 
-  const clefTag = svg => (svg.match(/<text [^>]*>&#1190(70|73|74);<\/text>/) || [])[0] || '';
+  const clefTag = svg => (svg.match(/<path class="clef clef-\w+"[^>]*\/>/) || [])[0] || '';
 
   for (const [clef, refPos] of [['treble', 2], ['alto', 4], ['bass', 6]]) {
     const g = Graphics.CLEF_GLYPH[clef];
     const svg = Graphics.staffSVG({ pos: refPos, clef, accentColor: '#F2C24E', width: 130 });
     const tag = clefTag(svg);
-    check(tag.includes(`&#${g.code};`), `${clef}: the right clef glyph is drawn`);
+    check(tag.includes(`clef-${clef}`), `${clef}: the right clef is drawn`);
+    check(/\bd="M[^"]{20,}"/.test(tag), `${clef}: a real outline is embedded, not a font glyph`);
 
     const attr = Object.fromEntries([...tag.matchAll(/([\w-]+)="([^"]*)"/g)].map(m => [m[1], m[2]]));
-    const fs = Number(attr['font-size']);
-    const x = Number(attr.x);
-    const y = Number(attr.y);
+    const [, tx, ty, sx, sy] = attr.transform.match(/translate\(([-\d.]+) ([-\d.]+)\) scale\(([-\d.]+) ([-\d.]+)\)/).map(Number);
+    check(Math.abs(sx + sy) < 1e-9, `${clef}: the glyph is flipped into screen coordinates`);
 
-    // The drawn glyph is the metric height × the font size — the full standard.
-    const inkSpaces = g.height * fs / SPACE;
-    check(Math.abs(inkSpaces - STAFF_LINES[clef]) < 0.05,
-      `${clef}: the clef should fill ${STAFF_LINES[clef]} staff spaces (got ${inkSpaces.toFixed(2)})`);
+    // The reference line is the path's origin, placed on the named staff line.
+    check(Math.abs(ty - Graphics.yForPos(refPos)) < 0.01,
+      `${clef}: the reference line should sit on pos ${refPos} (want y≈${Graphics.yForPos(refPos)}, got ${ty})`);
 
-    // The reference line is the baseline minus its rise above the baseline, and
-    // it must land exactly on the staff line the clef names.
-    const refY = y - g.refEm * fs;
-    const wantY = Graphics.yForPos(refPos);
-    check(Math.abs(refY - wantY) < 0.6,
-      `${clef}: the reference line should sit on pos ${refPos} (want y≈${wantY}, got ${refY.toFixed(1)})`);
+    // The scale is chosen so the outline fills its standard height.
+    const inkSpaces = (g.top - g.bottom) * sx / SPACE;
+    check(Math.abs(inkSpaces - STAFF_LINES[clef]) < 0.01,
+      `${clef}: the clef should fill ${STAFF_LINES[clef].toFixed(2)} staff spaces (got ${inkSpaces.toFixed(2)})`);
 
-    // The clef must not run into the notehead.
-    const inkRight = (x + g.xMin * fs) + g.width * fs;
+    // The clef must stay inside the canvas and clear the notehead.
+    const inkLeft = tx + g.xMin * sx;
+    const inkRight = tx + g.xMax * sx;
     const noteX = Number((svg.match(/<ellipse cx="([\d.]+)"/) || [])[1]);
+    check(inkLeft >= 0, `${clef}: the clef should not be clipped on the left (starts ${inkLeft.toFixed(1)})`);
     check(inkRight < noteX - 8,
       `${clef}: the clef should clear the notehead (clef ends ${inkRight.toFixed(1)}, note at ${noteX})`);
   }
@@ -193,18 +195,18 @@ check(diagrams > 0, 'no fingerboard diagrams rendered');
   const melody = Graphics.melodySVG({ notes: [{ pos: 0 }, { pos: 2 }], clef: 'treble', accentColor: '#F2C24E' });
   const mtag = clefTag(melody);
   const mattr = Object.fromEntries([...mtag.matchAll(/([\w-]+)="([^"]*)"/g)].map(m => [m[1], m[2]]));
-  const mfs = Number(mattr['font-size']);
-  check(Math.abs(Graphics.CLEF_GLYPH.treble.height * mfs / SPACE - STAFF_LINES.treble) < 0.05,
-    'the melody staff clef should be full size too');
-  // Both edges of the glyph ink: `height` above the bottom of the ink, with
-  // the ink starting just under the baseline.
+  const [, , mty, msx] = mattr.transform.match(/translate\(([-\d.]+) ([-\d.]+)\) scale\(([-\d.]+) ([-\d.]+)\)/).map(Number);
   const g = Graphics.CLEF_GLYPH.treble;
-  const mBase = Number(mattr.y);
-  const clefTop = mBase - g.topEm * mfs;
-  const clefBottom = mBase + g.bottomEm * mfs;
+  const clefTop = mty - g.top * msx;
+  const clefBottom = mty - g.bottom * msx;
   const vb = melody.match(/viewBox="0 0 (\d+) (\d+)"/).slice(1).map(Number);
   check(clefTop > 0, `the melody clef should not be clipped at the top (top ${clefTop.toFixed(1)})`);
   check(clefBottom < vb[1], `the melody clef should not be clipped at the bottom (bottom ${clefBottom.toFixed(1)} of ${vb[1]})`);
+  check(mty - g.top * msx > 0 && mty - g.bottom * msx < vb[1], 'the melody clef fits its system');
+
+  // Width is reported in staff spaces for layout callers.
+  check(Graphics.clefWidth('treble') > 2.6 && Graphics.clefWidth('treble') < 2.8, `the treble clef should be about 2.7 spaces wide (got ${Graphics.clefWidth('treble').toFixed(2)})`);
+  check(Graphics.clefWidth('bass') > 2.7 && Graphics.clefWidth('bass') < 2.85, `the bass clef should be about 2.8 spaces wide (got ${Graphics.clefWidth('bass').toFixed(2)})`);
 }
 
 // ── Ledger lines stop at the notehead ──────────────────────────────────────
@@ -264,7 +266,7 @@ for (const inst of Object.values(CURRICULUM)) {
   check(isSvg(svg), 'melody staff is valid SVG');
   const heads = (svg.match(/<ellipse/g) || []).length;
   check(heads === notes.length, `melody staff should draw one notehead per note (got ${heads})`);
-  const systems = (svg.match(/<text[^>]*>&#1190(70|74);<\/text>/g) || []).length;
+  const systems = (svg.match(/class="clef clef-treble"/g) || []).length;
   check(systems >= 2, 'a melody longer than one system wraps onto more staves');
   check(svg.includes('#e0a020'), 'the highlighted note uses the accent colour');
   check(svg.includes('♭'), 'an accidental note prints its accidental');

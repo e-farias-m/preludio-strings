@@ -42,62 +42,103 @@ const Graphics = (() => {
   // dots straddle the F line, and the alto clef's arrow heads point at the
   // middle line (that is what makes it an alto clef).
   //
-  // The glyphs come from Apple Symbols (U+1D11E, U+1D121, U+1D122), so their
-  // metrics are measured from that font and expressed in em: `height` and
-  // `width` are the ink size, `xMin` the left side bearing, and `refEm` how far
-  // the reference line sits above the text baseline. The baseline is then
-  // derived from the reference line, so a clef always points at the right note
-  // instead of relying on a hard-coded baseline.
-  //
-  // Sizes follow the engraved standard: a G clef is 7.02 staff spaces tall and
-  // the C and F clefs are 5.26 (SMuFL proportions), not the thumbnail-sized
-  // glyphs the diagram used to draw.
-  // topEm / bottomEm say how far the ink reaches above and below the text
-  // baseline, so a caller can keep the glyph inside its viewBox.
+  // The shapes are Bravura's outlines, embedded as paths (see fonts/OFL.txt)
+  // instead of drawn from a system font. That keeps them identical on macOS,
+  // Windows, Linux and Android — no glyph fallback, no font-specific metrics,
+  // and the clef cannot shift when a fallback font is picked. Coordinates are
+  // font units (250 per staff space) with the origin on the clef's reference
+  // line, which is exactly where the staff line must pass.
+  const CLEF_UNITS_PER_SPACE = 250;
   const CLEF_GLYPH = {
-    treble: { refPos: 2, code: 119070, height: 0.730, width: 0.275, xMin: 0.0300, refEm: 0.199,  topEm: 0.655, bottomEm: 0.075 },
-    alto:   { refPos: 4, code: 119073, height: 0.677, width: 0.470, xMin: 0.0325, refEm: 0.3346, topEm: 0.677, bottomEm: 0.000 },
-    bass:   { refPos: 6, code: 119074, height: 0.640, width: 0.527, xMin: 0.0325, refEm: 0.4511, topEm: 0.656, bottomEm: -0.016 },
+    treble: {
+      refPos: 2,
+      xMin: 0, xMax: 671, top: 1098, bottom: -658,
+      path: 
+      'M376 415C374 427 376 428 382 434C398 449 419 470 438 491C522 583 572 702 572 815C572 902 548 988 507 1048 '
+      + 'C492 1070 466 1098 455 1098C441 1098 410 1072 390 1050C316 968 292 843 292 739C292 681 299 616 306 575 '
+      + 'C308 563 309 561 297 551C233 498 164 437 112 373C43 287 0 194 0 87C0 -87 119 -252 364 -252 '
+      + 'C387 -252 413 -250 433 -246C444 -244 446 -243 448 -255C460 -322 475 -409 475 -456C475 -604 375 -622 316 -622 '
+      + 'C262 -622 236 -606 236 -593C236 -586 245 -583 268 -576C299 -567 335 -540 335 -482C335 -427 300 -380 239 -380 '
+      + 'C172 -380 132 -433 132 -495C132 -560 171 -658 322 -658C389 -658 519 -628 519 -458C519 -401 501 -306 490 -244 '
+      + 'C488 -232 489 -233 503 -227C604 -187 671 -102 671 11C671 139 577 252 430 252C404 252 404 252 401 270ZM470 943 '
+      + 'C503 943 530 916 530 861C530 792 497 728 419 650C403 634 379 611 356 591C349 585 345 586 343 599 '
+      + 'C339 625 337 659 337 691C337 847 409 943 470 943ZM361 262C364 243 364 244 346 238C258 208 201 129 201 44 '
+      + 'C201 -46 248 -110 316 -133C324 -136 336 -139 343 -139C351 -139 355 -134 355 -128C355 -121 347 -118 340 -115 '
+      + 'C298 -97 268 -54 268 -8C268 49 307 92 368 109C384 113 386 112 388 101L438 -197C440 -208 439 -208 424 -211 '
+      + 'C408 -214 388 -216 368 -216C193 -216 80 -119 80 20C80 79 90 158 173 252C233 319 279 356 326 394 '
+      + 'C336 402 338 401 340 390ZM430 103C428 115 429 118 441 117C522 110 589 42 589 -46C589 -109 551 -160 495 -188 '
+      + 'C483 -194 481 -194 479 -182Z',
+    },
+    alto: {
+      refPos: 4,
+      xMin: 0, xMax: 699, top: 506, bottom: -506,
+      path: 
+      'M230 482C230 496 223 503 209 503H208C194 503 187 496 187 482V-482C187 -496 194 -503 208 -503H209 '
+      + 'C223 -503 230 -496 230 -482V-44C230 -36 235 -37 239 -38C265 -45 307 -71 328 -184C331 -200 337 -209 347 -209 '
+      + 'C358 -209 363 -199 368 -182C381 -138 404 -89 475 -89C540 -89 558 -153 558 -284C558 -415 535 -474 452 -474 '
+      + 'C430 -474 410 -471 394 -466C377 -461 367 -454 367 -447C367 -442 383 -436 394 -432C414 -425 434 -405 434 -367 '
+      + 'C434 -323 405 -298 366 -298C323 -298 289 -327 289 -380C289 -443 344 -506 463 -506C627 -506 699 -391 699 -287 '
+      + 'C699 -149 623 -53 490 -53C461 -53 442 -58 429 -62C424 -64 418 -65 413 -65C409 -65 404 -64 400 -61 '
+      + 'C386 -52 364 -20 364 0C364 20 386 52 400 61C404 64 409 65 413 65C418 65 424 64 429 62C442 58 461 53 490 53 '
+      + 'C623 53 699 149 699 287C699 391 627 506 463 506C344 506 289 443 289 380C289 327 323 298 366 298 '
+      + 'C405 298 434 323 434 367C434 405 414 425 394 432C383 436 367 442 367 447C367 454 377 461 394 466 '
+      + 'C410 471 430 474 452 474C535 474 558 415 558 284C558 153 540 89 475 89C404 89 381 138 368 182 '
+      + 'C363 199 358 209 347 209C337 209 331 200 328 184C307 71 265 45 239 38C235 37 230 36 230 44ZM21 503 '
+      + 'C7 503 0 496 0 482V-482C0 -496 7 -503 21 -503H107C121 -503 128 -496 128 -482V482C128 496 121 503 107 503Z',
+    },
+    bass: {
+      refPos: 6,
+      xMin: -5, xMax: 684, top: 262, bottom: -635,
+      path: 
+      'M252 262C78 262 0 135 0 39C0 -41 42 -110 123 -110C186 -110 229 -66 229 -4C229 60 182 100 133 100 '
+      + 'C106 100 96 93 83 93C70 93 67 101 67 111C67 151 127 224 229 224C335 224 381 120 381 -37 '
+      + 'C381 -140 359 -260 297 -356C237 -449 134 -534 10 -605C1 -610 -5 -615 -5 -623C-5 -629 -1 -635 8 -635 '
+      + 'C13 -635 19 -633 25 -630C158 -565 286 -489 392 -375C479 -281 531 -159 531 -28C531 146 425 262 252 262ZM629 180 '
+      + 'C598 180 574 156 574 125C574 94 598 70 629 70C660 70 684 94 684 125C684 156 660 180 629 180ZM630 -71 '
+      + 'C599 -71 576 -94 576 -125C576 -156 599 -179 630 -179C661 -179 684 -156 684 -125C684 -94 661 -71 630 -71Z',
+    },
   };
-  const CLEF_SPACES = { treble: 7.02, alto: 5.26, bass: 5.26 };
 
-  function clefFontSize(clef, space) {
-    const g = CLEF_GLYPH[clef] || CLEF_GLYPH.treble;
-    return CLEF_SPACES[clef] * space / g.height;
-  }
-
-  // `fs` for the default single-note staff (four spaces tall).
-  const CLEF_METRICS = {};
+  // Height in staff spaces, used by the tests and the layout comments.
+  const CLEF_SPACES = {};
   Object.keys(CLEF_GLYPH).forEach(clef => {
-    CLEF_METRICS[clef] = Object.assign({}, CLEF_GLYPH[clef], { fs: clefFontSize(clef, STAFF_SPACE) });
+    const g = CLEF_GLYPH[clef];
+    CLEF_SPACES[clef] = (g.top - g.bottom) / CLEF_UNITS_PER_SPACE;
   });
 
-  // `yRef` is the y of the clef's reference line on the staff; the baseline is
-  // derived from it so the clef always points at the right note.
-  function clefText(clef, { x, yRef, fs = null, color = INK }) {
-    const m = CLEF_METRICS[clef] || CLEF_METRICS.treble;
-    const size = fs || m.fs;
-    const baseline = yRef + m.refEm * size;
-    return `<text x="${x.toFixed(1)}" y="${baseline.toFixed(1)}" font-size="${size.toFixed(1)}" font-family="'Apple Symbols', 'Noto Music', 'Segoe UI Symbol', serif" fill="${color}">&#${m.code};</text>`;
+  // `yRef` is the y of the clef's reference line on the staff. The path's
+  // origin sits on that line, so the transform places it directly.
+  function clefText(clef, { x, yRef, space = STAFF_SPACE, color = INK }) {
+    const g = CLEF_GLYPH[clef] || CLEF_GLYPH.treble;
+    const s = space / CLEF_UNITS_PER_SPACE;
+    return `<path class="clef clef-${clef}" d="${g.path}"`
+      + ` transform="translate(${x.toFixed(2)} ${yRef.toFixed(2)}) scale(${s.toFixed(5)} ${(-s).toFixed(5)})"`
+      + ` fill="${color}"/>`;
   }
 
   // Draw a clef with its left ink edge at `left`, so the horizontal placement
   // is the same for every glyph regardless of its side bearing.
   function clefAt(clef, left, space, yRef, color) {
     const g = CLEF_GLYPH[clef] || CLEF_GLYPH.treble;
-    const fs = clefFontSize(clef, space);
-    return clefText(clef, { x: left - g.xMin * fs, yRef, fs, color });
+    const s = space / CLEF_UNITS_PER_SPACE;
+    return clefText(clef, { x: left - g.xMin * s, yRef, space, color });
+  }
+
+  // Width of a clef's ink in staff spaces.
+  function clefWidth(clef) {
+    const g = CLEF_GLYPH[clef] || CLEF_GLYPH.treble;
+    return (g.xMax - g.xMin) / CLEF_UNITS_PER_SPACE;
   }
 
   // Where each clef's ink starts. The notehead sits to the right of the clef,
-  // so the bass clef (the widest) still clears it.
-  const CLEF_STAFF_LEFT = { treble: 20, alto: 8, bass: 4 };
+  // so the widest clef still clears it.
+  const CLEF_STAFF_LEFT = { treble: 20, alto: 20, bass: 20 };
   const CLEF_MELODY_LEFT = { treble: 18, alto: 18, bass: 18 };
 
   // ── STAFF NOTATION ──────────────────────────────────────────────────────
   function staffSVG({ pos, accidental = null, clef = 'treble', accentColor = 'var(--accent-warm)', width = 130 }) {
-    // Nudged right of centre so the full-size clef on the left has room.
-    const noteX = (STAFF_LEFT_X + STAFF_RIGHT_X) / 2 + 22;
+    // Nudged right of centre so the clef on the left has room.
+    const noteX = (STAFF_LEFT_X + STAFF_RIGHT_X) / 2 + 13;
     const noteY = yForPos(pos);
     const stemUp = pos <= 4;
     const lineColor = INK;
@@ -166,8 +207,8 @@ const Graphics = (() => {
     // space and a half below the staff, so each system needs room for it.
     const SYSTEM_H = 120;
     const TOP_LINE_Y = 24;
-    const sigX = 100;          // time signature, centred
-    const leftX = 120;         // first note sits past the clef + time signature
+    const sigX = 88;           // time signature, centred
+    const leftX = 108;         // first note sits past the clef + time signature
     const lineStartX = 16;
     const rightX = VB_W - 14;
     const systems = [];
@@ -372,5 +413,5 @@ const Graphics = (() => {
     }
   }
 
-  return { staffSVG, melodySVG, fingeringSVG, stringFingeringSVG, instrumentIconSVG, yForPos, ledgerPositions, clefText, CLEF_METRICS, CLEF_GLYPH, CLEF_SPACES, clefFontSize, CLEF_STAFF_LEFT, CLEF_MELODY_LEFT };
+  return { staffSVG, melodySVG, fingeringSVG, stringFingeringSVG, instrumentIconSVG, yForPos, ledgerPositions, clefText, clefAt, clefWidth, CLEF_GLYPH, CLEF_SPACES, CLEF_UNITS_PER_SPACE, CLEF_STAFF_LEFT, CLEF_MELODY_LEFT };
 })();
