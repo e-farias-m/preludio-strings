@@ -147,6 +147,66 @@ check(diagrams > 0, 'no fingerboard diagrams rendered');
   check(melody.includes('&#119074;'), 'the melody staff should draw the bass clef');
 }
 
+// ── The clefs are engraved at full size and point at the right line ────────
+{
+  const SPACE = 16; // px between two staff lines
+  const STAFF_LINES = Graphics.CLEF_SPACES;
+
+  // Standard heights: a G clef spans 7.02 staff spaces, C and F clefs 5.26.
+  check(STAFF_LINES.treble === 7.02, 'the treble clef should be 7.02 staff spaces tall');
+  check(STAFF_LINES.alto === 5.26, 'the alto clef should be 5.26 staff spaces tall');
+  check(STAFF_LINES.bass === 5.26, 'the bass clef should be 5.26 staff spaces tall');
+
+  const clefTag = svg => (svg.match(/<text [^>]*>&#1190(70|73|74);<\/text>/) || [])[0] || '';
+
+  for (const [clef, refPos] of [['treble', 2], ['alto', 4], ['bass', 6]]) {
+    const g = Graphics.CLEF_GLYPH[clef];
+    const svg = Graphics.staffSVG({ pos: refPos, clef, accentColor: '#F2C24E', width: 130 });
+    const tag = clefTag(svg);
+    check(tag.includes(`&#${g.code};`), `${clef}: the right clef glyph is drawn`);
+
+    const attr = Object.fromEntries([...tag.matchAll(/([\w-]+)="([^"]*)"/g)].map(m => [m[1], m[2]]));
+    const fs = Number(attr['font-size']);
+    const x = Number(attr.x);
+    const y = Number(attr.y);
+
+    // The drawn glyph is the metric height × the font size — the full standard.
+    const inkSpaces = g.height * fs / SPACE;
+    check(Math.abs(inkSpaces - STAFF_LINES[clef]) < 0.05,
+      `${clef}: the clef should fill ${STAFF_LINES[clef]} staff spaces (got ${inkSpaces.toFixed(2)})`);
+
+    // The reference line is the baseline minus its rise above the baseline, and
+    // it must land exactly on the staff line the clef names.
+    const refY = y - g.refEm * fs;
+    const wantY = Graphics.yForPos(refPos);
+    check(Math.abs(refY - wantY) < 0.6,
+      `${clef}: the reference line should sit on pos ${refPos} (want y≈${wantY}, got ${refY.toFixed(1)})`);
+
+    // The clef must not run into the notehead.
+    const inkRight = (x + g.xMin * fs) + g.width * fs;
+    const noteX = Number((svg.match(/<ellipse cx="([\d.]+)"/) || [])[1]);
+    check(inkRight < noteX - 8,
+      `${clef}: the clef should clear the notehead (clef ends ${inkRight.toFixed(1)}, note at ${noteX})`);
+  }
+
+  // The melody staff draws the same full-size clefs, with room for them.
+  const melody = Graphics.melodySVG({ notes: [{ pos: 0 }, { pos: 2 }], clef: 'treble', accentColor: '#F2C24E' });
+  const mtag = clefTag(melody);
+  const mattr = Object.fromEntries([...mtag.matchAll(/([\w-]+)="([^"]*)"/g)].map(m => [m[1], m[2]]));
+  const mfs = Number(mattr['font-size']);
+  check(Math.abs(Graphics.CLEF_GLYPH.treble.height * mfs / SPACE - STAFF_LINES.treble) < 0.05,
+    'the melody staff clef should be full size too');
+  // Both edges of the glyph ink: `height` above the bottom of the ink, with
+  // the ink starting just under the baseline.
+  const g = Graphics.CLEF_GLYPH.treble;
+  const mBase = Number(mattr.y);
+  const clefTop = mBase - g.topEm * mfs;
+  const clefBottom = mBase + g.bottomEm * mfs;
+  const vb = melody.match(/viewBox="0 0 (\d+) (\d+)"/).slice(1).map(Number);
+  check(clefTop > 0, `the melody clef should not be clipped at the top (top ${clefTop.toFixed(1)})`);
+  check(clefBottom < vb[1], `the melody clef should not be clipped at the bottom (bottom ${clefBottom.toFixed(1)} of ${vb[1]})`);
+}
+
 // ── Ledger lines stop at the notehead ──────────────────────────────────────
 // A note in a space hangs off the last line above it; nothing is drawn past
 // the head. G3, the violin's first note, is the space under the A3 ledger

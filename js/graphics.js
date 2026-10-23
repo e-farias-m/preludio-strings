@@ -6,6 +6,7 @@
 const Graphics = (() => {
 
   const HALF = 8;           // px per diatonic staff step
+  const STAFF_SPACE = 2 * HALF; // px between two adjacent staff lines
   const STAFF_BOTTOM_Y = 140; // y of pos0 (E4, bottom line)
   const STAFF_LEFT_X = 30;
   const STAFF_RIGHT_X = 105;
@@ -39,15 +40,37 @@ const Graphics = (() => {
   // Every clef has a "reference line" that must land on one specific staff
   // position: the treble clef's spiral sits on the G line, the bass clef's two
   // dots straddle the F line, and the alto clef's arrow heads point at the
-  // middle line (that is what makes it an alto clef). `refEm` is how far that
-  // reference line sits above the text baseline, measured from the font that
-  // actually renders the glyph, so a clef lands correctly at any staff scale
+  // middle line (that is what makes it an alto clef).
+  //
+  // The glyphs come from Apple Symbols (U+1D11E, U+1D121, U+1D122), so their
+  // metrics are measured from that font and expressed in em: `height` and
+  // `width` are the ink size, `xMin` the left side bearing, and `refEm` how far
+  // the reference line sits above the text baseline. The baseline is then
+  // derived from the reference line, so a clef always points at the right note
   // instead of relying on a hard-coded baseline.
-  const CLEF_METRICS = {
-    treble: { refEm: 0.240, refPos: 2, fs: 110, code: 119070 },
-    alto:   { refEm: 0.335, refPos: 4, fs: 88,  code: 119073 },
-    bass:   { refEm: 0.455, refPos: 6, fs: 66,  code: 119074 },
+  //
+  // Sizes follow the engraved standard: a G clef is 7.02 staff spaces tall and
+  // the C and F clefs are 5.26 (SMuFL proportions), not the thumbnail-sized
+  // glyphs the diagram used to draw.
+  // topEm / bottomEm say how far the ink reaches above and below the text
+  // baseline, so a caller can keep the glyph inside its viewBox.
+  const CLEF_GLYPH = {
+    treble: { refPos: 2, code: 119070, height: 0.730, width: 0.275, xMin: 0.0300, refEm: 0.199,  topEm: 0.655, bottomEm: 0.075 },
+    alto:   { refPos: 4, code: 119073, height: 0.677, width: 0.470, xMin: 0.0325, refEm: 0.3346, topEm: 0.677, bottomEm: 0.000 },
+    bass:   { refPos: 6, code: 119074, height: 0.640, width: 0.527, xMin: 0.0325, refEm: 0.4511, topEm: 0.656, bottomEm: -0.016 },
   };
+  const CLEF_SPACES = { treble: 7.02, alto: 5.26, bass: 5.26 };
+
+  function clefFontSize(clef, space) {
+    const g = CLEF_GLYPH[clef] || CLEF_GLYPH.treble;
+    return CLEF_SPACES[clef] * space / g.height;
+  }
+
+  // `fs` for the default single-note staff (four spaces tall).
+  const CLEF_METRICS = {};
+  Object.keys(CLEF_GLYPH).forEach(clef => {
+    CLEF_METRICS[clef] = Object.assign({}, CLEF_GLYPH[clef], { fs: clefFontSize(clef, STAFF_SPACE) });
+  });
 
   // `yRef` is the y of the clef's reference line on the staff; the baseline is
   // derived from it so the clef always points at the right note.
@@ -55,24 +78,26 @@ const Graphics = (() => {
     const m = CLEF_METRICS[clef] || CLEF_METRICS.treble;
     const size = fs || m.fs;
     const baseline = yRef + m.refEm * size;
-    return `<text x="${x}" y="${baseline.toFixed(1)}" font-size="${size}" font-family="Georgia, 'Apple Symbols', serif" fill="${color}">&#${m.code};</text>`;
+    return `<text x="${x.toFixed(1)}" y="${baseline.toFixed(1)}" font-size="${size.toFixed(1)}" font-family="'Apple Symbols', 'Noto Music', 'Segoe UI Symbol', serif" fill="${color}">&#${m.code};</text>`;
   }
 
-  // Where each clef starts horizontally, and how big it is, per staff size.
-  const CLEF_STAFF = {
-    treble: { x: STAFF_LEFT_X - 8, fs: 110 },
-    alto:   { x: 1, fs: 88 },
-    bass:   { x: STAFF_LEFT_X - 6, fs: 66 },
-  };
-  const CLEF_MELODY = {
-    treble: { x: 10, fs: 60 },
-    alto:   { x: 0, fs: 62 },
-    bass:   { x: 14, fs: 44 },
-  };
+  // Draw a clef with its left ink edge at `left`, so the horizontal placement
+  // is the same for every glyph regardless of its side bearing.
+  function clefAt(clef, left, space, yRef, color) {
+    const g = CLEF_GLYPH[clef] || CLEF_GLYPH.treble;
+    const fs = clefFontSize(clef, space);
+    return clefText(clef, { x: left - g.xMin * fs, yRef, fs, color });
+  }
+
+  // Where each clef's ink starts. The notehead sits to the right of the clef,
+  // so the bass clef (the widest) still clears it.
+  const CLEF_STAFF_LEFT = { treble: 20, alto: 8, bass: 4 };
+  const CLEF_MELODY_LEFT = { treble: 18, alto: 18, bass: 18 };
 
   // ── STAFF NOTATION ──────────────────────────────────────────────────────
   function staffSVG({ pos, accidental = null, clef = 'treble', accentColor = 'var(--accent-warm)', width = 130 }) {
-    const noteX = (STAFF_LEFT_X + STAFF_RIGHT_X) / 2 + 8;
+    // Nudged right of centre so the full-size clef on the left has room.
+    const noteX = (STAFF_LEFT_X + STAFF_RIGHT_X) / 2 + 22;
     const noteY = yForPos(pos);
     const stemUp = pos <= 4;
     const lineColor = INK;
@@ -88,9 +113,10 @@ const Graphics = (() => {
 
     // Clef glyph — positioned from the clef's own reference line so the
     // treble, alto and bass clefs all sit on the right staff line.
-    const cm = CLEF_STAFF[clef] || CLEF_STAFF.treble;
-    const cmet = CLEF_METRICS[clef] || CLEF_METRICS.treble;
-    svg += clefText(clef, { x: cm.x, yRef: yForPos(cmet.refPos), fs: cm.fs, color: lineColor });
+    const clefName = CLEF_GLYPH[clef] ? clef : 'treble';
+    const cmet = CLEF_GLYPH[clefName];
+    svg += clefAt(clefName, CLEF_STAFF_LEFT[clefName],
+      STAFF_SPACE, yForPos(cmet.refPos), lineColor);
 
     // Ledger lines
     ledgerPositions(pos).forEach(p => {
@@ -136,9 +162,12 @@ const Graphics = (() => {
   function melodySVG({ notes = [], highlightIndex = -1, clef = 'treble', accentColor = 'var(--accent-warm)', width = 320, perSystem = 6, beatsPerBar = 4 }) {
     if (!notes.length) return '';
     const VB_W = 360;
-    const SYSTEM_H = 96;
-    const TOP_LINE_Y = 16;
-    const leftX = 96;          // first note sits past the clef + time signature
+    // A full-size treble clef stands 7 staff spaces tall and reaches about a
+    // space and a half below the staff, so each system needs room for it.
+    const SYSTEM_H = 120;
+    const TOP_LINE_Y = 24;
+    const sigX = 100;          // time signature, centred
+    const leftX = 120;         // first note sits past the clef + time signature
     const lineStartX = 16;
     const rightX = VB_W - 14;
     const systems = [];
@@ -168,12 +197,11 @@ const Graphics = (() => {
       for (let p = 0; p <= 8; p += 2) {
         svg += `<line x1="${lineStartX}" y1="${y(p)}" x2="${rightX}" y2="${y(p)}" stroke="${INK}" stroke-width="1.3"/>`;
       }
-      const cm = CLEF_MELODY[clef] || CLEF_MELODY.treble;
-      const cmet = CLEF_METRICS[clef] || CLEF_METRICS.treble;
-      svg += clefText(clef, { x: cm.x, yRef: y(cmet.refPos), fs: cm.fs, color: INK });
+      const clefName = CLEF_GLYPH[clef] ? clef : 'treble';
+      const cmet = CLEF_GLYPH[clefName];
+      svg += clefAt(clefName, CLEF_MELODY_LEFT[clefName], STAFF_SPACE, y(cmet.refPos), INK);
       // Time signature: "4" over "4" centred on the middle of the staff.
       if (s === 0) {
-        const sigX = lineStartX + 70;
         svg += `<text x="${sigX}" y="${y(4) - 1}" font-size="26" font-weight="700" text-anchor="middle" font-family="Georgia, serif" fill="${INK}">${beatsPerBar}</text>`;
         svg += `<text x="${sigX}" y="${y(2) + 15}" font-size="26" font-weight="700" text-anchor="middle" font-family="Georgia, serif" fill="${INK}">4</text>`;
       }
@@ -344,5 +372,5 @@ const Graphics = (() => {
     }
   }
 
-  return { staffSVG, melodySVG, fingeringSVG, stringFingeringSVG, instrumentIconSVG, yForPos, ledgerPositions, clefText, CLEF_METRICS };
+  return { staffSVG, melodySVG, fingeringSVG, stringFingeringSVG, instrumentIconSVG, yForPos, ledgerPositions, clefText, CLEF_METRICS, CLEF_GLYPH, CLEF_SPACES, clefFontSize, CLEF_STAFF_LEFT, CLEF_MELODY_LEFT };
 })();
