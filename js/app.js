@@ -729,61 +729,6 @@ function centsLabel(cents) {
   return (r > 0 ? '+' : '') + r + ' cents ' + (r > 0 ? 'sharp' : 'flat');
 }
 
-// ── LISTEN & MATCH (prototype) ─────────────────────────────────────────────
-// The device microphone detects the pitch a student plays and tells them
-// whether it matches the note they are working on — the instant feedback a
-// beginner misses. Everything runs on-device through Web Audio; nothing is
-// recorded or sent anywhere.
-//
-// The prototype is enabled for the three string instruments, whose open
-// strings give the steadiest and most recognisable reference pitches.
-const LISTEN_INSTRUMENTS = ['violin', 'viola', 'cello'];
-const LISTEN_MATCH_CENTS = 50;   // within this of the target counts as a match
-const LISTEN_CLOSE_CENTS = 100;  // within this is "nearly there"
-const LISTEN_HOLD_FRAMES = 22;   // ~0.35s of steady pitch registers one hit
-const LISTEN_GOAL = 3;           // hits needed to finish the listen exercise
-
-function listenEnabled(instrumentId) {
-  return LISTEN_INSTRUMENTS.indexOf(instrumentId) !== -1;
-}
-
-// Pure mapping from a detected frequency to a feedback state for the target
-// frequency, so the UI logic can be tested without a microphone:
-//   listening - no usable signal yet
-//   match     - the right note, close enough to count
-//   close     - near the target note but a little off
-//   octave    - the right note name in the wrong octave (a different partial)
-//   off       - a different note
-function listenFeedback(targetFreq, freq) {
-  if (!freq || freq <= 0 || !isFinite(freq)) return { state: 'listening', cents: null };
-  if (!targetFreq || targetFreq <= 0) return { state: 'off', cents: null };
-  const cents = 1200 * Math.log2(freq / targetFreq);
-  if (Math.abs(cents) <= LISTEN_MATCH_CENTS) return { state: 'match', cents };
-  if (Math.abs(cents) <= LISTEN_CLOSE_CENTS) return { state: 'close', cents };
-  // Same note name an octave (or two) away — common on wobbly beginner tone.
-  for (const factor of [2, 0.5, 4, 0.25]) {
-    const octCents = 1200 * Math.log2(freq / (targetFreq * factor));
-    if (Math.abs(octCents) <= LISTEN_MATCH_CENTS) return { state: 'octave', cents, octave: factor > 1 ? 'above' : 'below' };
-  }
-  return { state: 'off', cents };
-}
-
-// Pure reducer for the hold-to-win logic: given the running {hold, armed, hits}
-// and the latest feedback, returns the next values. Keeping this separate from
-// the microphone loop lets the "win every few seconds" behaviour be tested
-// without audio. A hit needs a steady match for LISTEN_HOLD_FRAMES, and the
-// pitch must drop before the same note can score again.
-function advanceListen(s, feedback) {
-  if (feedback && feedback.state === 'match') {
-    const hold = s.hold + 1;
-    if (s.armed && hold >= LISTEN_HOLD_FRAMES) {
-      return { hold, armed: false, hits: s.hits + 1, hit: true };
-    }
-    return { hold, armed: s.armed, hits: s.hits, hit: false };
-  }
-  return { hold: 0, armed: true, hits: s.hits, hit: false };
-}
-
 // ── TEACHER / PARENT PRACTICE REPORT ───────────────────────────────────────
 // A shareable summary of what a student has learned, how strong each note is,
 // and which notes to watch. Built from the same progress + skill records the
@@ -3012,36 +2957,6 @@ function renderQuizPhase(inst, lesson) {
     </div>`;
 }
 
-function renderListenPanel(lesson) {
-  const l = APP.listen;
-  const dots = Array.from({ length: LISTEN_GOAL }, (_, i) =>
-    `<span class="listen-dot${l && i < l.hits ? ' filled' : ''}"></span>`).join('');
-
-  if (!l) {
-    return `
-      <div class="listen-panel">
-        <div class="listen-intro">
-          <div class="listen-intro-title">\u{1F3A7} Listen &amp; match</div>
-          <div class="listen-intro-sub">Turn on your microphone and the app hears whether ${escapeHtml(t(lesson.noteName))} is right \u2014 green means you nailed it.</div>
-        </div>
-        <button class="btn btn-secondary btn-wide" data-action="listen-toggle">Start listening</button>
-      </div>`;
-  }
-
-  const status = l.done ? '\u{1F389} You found it! Keep it going.' : (LISTEN_MESSAGES[l.state] || LISTEN_MESSAGES.listening);
-  return `
-    <div class="listen-card listen-${l.done ? 'done' : l.state}" id="listen-card">
-      <div class="listen-target">Listening for <strong>${escapeHtml(t(lesson.noteName))}</strong></div>
-      <div class="listen-status" id="listen-status">${status}</div>
-      <div class="listen-detected">
-        <span class="listen-detected-note" id="listen-detected">\u2014</span>
-        <span class="listen-cents" id="listen-cents">Listening\u2026</span>
-      </div>
-      <div class="listen-meter" id="listen-meter">${dots}</div>
-      <button class="btn btn-ghost" data-action="listen-toggle">Stop listening</button>
-    </div>`;
-}
-
 function renderPlayPhase(inst, lesson) {
   const fingeringDiagram = fingeringSvg(inst, lesson, 120);
   const cells = [1, 2, 3, 4].map(n => `<div class="beat-cell count-in" data-beat="${n}"><span class="beat-num">${n}</span></div>`).join('');
@@ -3089,7 +3004,6 @@ function renderPlayPhase(inst, lesson) {
         <div class="play-status" id="play-status">Tap Start, then play along on the count.</div>
         <button class="btn btn-secondary" data-action="play-start" id="play-start-btn">▶ Start count-in</button>
         ${recordPanel}
-        ${listenEnabled(APP.instrumentId) && !isSongLesson(lesson) ? renderListenPanel(lesson) : ''}
       </div>
     </div>
     <div class="action-bar">
@@ -3351,7 +3265,6 @@ function startTuner() {
   }
   const Ctx = window.AudioContext || window.webkitAudioContext;
   if (!Ctx) { showToast('Audio analysis not supported here.'); return; }
-  stopListen();
   stopTuner();
   APP.tuner = { running: true, freq: -1, ctx: null, stream: null, frame: null };
   const t = APP.tuner;
@@ -3397,118 +3310,6 @@ function updateTunerReadout() {
   noteEl.textContent = detected.note.noteName;
   centsEl.textContent = centsLabel(detected.cents);
   needleEl.style.left = Math.max(0, Math.min(100, 50 + (detected.cents / 50) * 50)) + '%';
-}
-
-// ── LISTEN & MATCH RUNTIME ─────────────────────────────────────────────────
-// Mirrors the tuner: one Web Audio loop reads the microphone and scores the
-// pitch against the target note. Kept separate from the tuner so a student can
-// either check a single pitch or get scored feedback while practising a note.
-function stopListen() {
-  const l = APP.listen;
-  if (!l) return;
-  if (l.frame) cancelAnimationFrame(l.frame);
-  if (l.stream) l.stream.getTracks().forEach(t => t.stop());
-  if (l.ctx) { try { l.ctx.close(); } catch (e) { /* ignore */ } }
-  APP.listen = null;
-}
-
-function startListen() {
-  const instrumentId = APP.instrumentId;
-  if (!listenEnabled(instrumentId)) return;
-  const lesson = getLesson(instrumentId, APP.lessonIndex);
-  if (!lesson || isSongLesson(lesson) || isReviewLesson(lesson) || !lesson.freq) return;
-  if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
-    showToast('Microphone not available here.');
-    return;
-  }
-  const Ctx = window.AudioContext || window.webkitAudioContext;
-  if (!Ctx) { showToast('Audio analysis not supported here.'); return; }
-
-  stopTuner();
-  cleanupRecording();
-  stopListen();
-
-  APP.listen = {
-    running: true, freq: -1, ctx: null, stream: null, frame: null,
-    targetId: lesson.id, targetFreq: lesson.freq,
-    state: 'listening', cents: null, octave: null, hold: 0, armed: true,
-    hits: 0, done: false, hitAt: 0,
-  };
-  const l = APP.listen;
-
-  navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-    if (!APP.listen || !APP.listen.running) { stream.getTracks().forEach(t => t.stop()); return; }
-    l.stream = stream;
-    l.ctx = new Ctx();
-    const source = l.ctx.createMediaStreamSource(stream);
-    const analyser = l.ctx.createAnalyser();
-    analyser.fftSize = 2048;
-    source.connect(analyser);
-    const buf = new Float32Array(analyser.fftSize);
-    const loop = () => {
-      if (!APP.listen || !APP.listen.running) return;
-      analyser.getFloatTimeDomainData(buf);
-      const freq = detectPitch(buf, l.ctx.sampleRate);
-      l.freq = freq;
-      const fb = listenFeedback(l.targetFreq, freq);
-      l.state = fb.state;
-      l.cents = fb.cents;
-      l.octave = fb.octave || null;
-      const next = advanceListen(l, fb);
-      l.hold = next.hold;
-      l.armed = next.armed;
-      if (next.hit) {
-        l.hits = next.hits;
-        l.hitAt = Date.now();
-        if (l.hits >= LISTEN_GOAL) l.done = true;
-      }
-      updateListenReadout();
-      APP.listen.frame = requestAnimationFrame(loop);
-    };
-    loop();
-    render();
-  }).catch(() => {
-    stopListen();
-    showToast('Could not access the microphone.');
-    render();
-  });
-}
-
-const LISTEN_MESSAGES = {
-  listening: 'Play your note and hold it…',
-  match: 'That\u2019s it \u2014 hold it steady!',
-  close: 'So close \u2014 adjust your pitch a little.',
-  octave: 'Right note name, wrong octave \u2014 try the next partial.',
-  off: 'Not that note yet \u2014 give it another go.',
-};
-
-function updateListenReadout() {
-  const l = APP.listen;
-  if (!l) return;
-  const card = document.getElementById('listen-card');
-  const statusEl = document.getElementById('listen-status');
-  const detectedEl = document.getElementById('listen-detected');
-  const centsEl = document.getElementById('listen-cents');
-  const meterEl = document.getElementById('listen-meter');
-  if (!card || !statusEl) return;
-
-  card.className = 'listen-card listen-' + (l.done ? 'done' : l.state);
-  statusEl.textContent = l.done ? '\u{1F389} You found it! Keep it going.' : (LISTEN_MESSAGES[l.state] || LISTEN_MESSAGES.listening);
-
-  if (detectedEl) {
-    const near = l.freq > 0 ? freqToNoteInfo(l.freq, getNoteLessons(APP.instrumentId)) : null;
-    detectedEl.textContent = near ? near.note.noteName : '\u2014';
-  }
-  if (centsEl) {
-    if (l.state === 'listening') centsEl.textContent = 'Listening\u2026';
-    else if (l.state === 'match' || l.done) centsEl.textContent = 'in tune \u2713';
-    else centsEl.textContent = centsLabel(l.cents);
-  }
-  if (meterEl && meterEl._hits !== l.hits) {
-    meterEl._hits = l.hits;
-    meterEl.innerHTML = Array.from({ length: LISTEN_GOAL }, (_, i) =>
-      `<span class="listen-dot${i < l.hits ? ' filled' : ''}"></span>`).join('');
-  }
 }
 
 // ── MUSICXML ──────────────────────────────────────────────────────────
@@ -4114,10 +3915,6 @@ function handleAction(action, el) {
       else { startTuner(); renderToolWidget(); }
       break;
 
-    case 'listen-toggle':
-      if (APP.listen) { stopListen(); render(); }
-      else startListen();
-      break;
 
     case 'sprint-answer': {
       const s = APP.sprint;
@@ -4192,8 +3989,7 @@ function handleAction(action, el) {
     case 'exit-lesson':
       stopAudioPlayback();
       stopPlaySequence();
-      stopListen();
-      endSession();
+          endSession();
       cleanupRecording();
       APP.reviewQueue = null;
       APP.reviewIndex = 0;
@@ -4326,8 +4122,7 @@ function handleAction(action, el) {
       break;
 
     case 'play-confirm': {
-      stopListen();
-      const mistakes = (APP.quizQueue || []).reduce((sum, item) => sum + item.wrongIds.length, 0);
+          const mistakes = (APP.quizQueue || []).reduce((sum, item) => sum + item.wrongIds.length, 0);
       const stars = mistakes === 0 ? 3 : (mistakes <= 2 ? 2 : 1);
       const xp = 10 + (stars * 5);
       APP.lastStars = stars;
@@ -4406,8 +4201,7 @@ function handleAction(action, el) {
     }
     case 'finish-lesson':
       stopAudioPlayback();
-      stopListen();
-      endSession();
+          endSession();
       cleanupRecording();
       APP.reviewQueue = null;
       APP.reviewIndex = 0;

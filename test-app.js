@@ -65,7 +65,6 @@ return { handleAction, renderCompletePhase, CURRICULUM, APP, IMPORTED_SONGS_KEY,
   buildSprintQuestion, getSprintBest, setSprintBest, finishSprint, startSprint,
   renderPracticeScreen, getLearnedNotes, SPRINT_MODES,
   buildNoteQuizQueue, buildQuizOptions, buildReviewQuiz, renderQuizPhase,
-  listenFeedback, listenEnabled, advanceListen,
   getMotivation, addPracticeSeconds, getTotalPracticeSeconds, getCurrentStreak,
   getTotalXp, getLevel, getAvatar, getStats, evaluateBadges, hasBadge, todayKey,
   endSession, renderStudentCard, renderBadgeShelf, renderSelectScreen, BADGES,
@@ -147,72 +146,6 @@ api.APP.instrumentId = 'violin';
   check(violin.lessons[2].id === 'vl-2' && violin.lessons[3].type === 'song' &&
     violin.lessons[3].noteName === 'Two Open Strings',
     'violin should have a practice song right after note 2');
-}
-
-// ── 1c. Listen & match pitch feedback (prototype) ──────────────────────────
-{
-  const target = 196; // the violin's first note, the open G string
-  const hz = centsOff => target * Math.pow(2, centsOff / 1200);
-
-  check(api.listenFeedback(target, -1).state === 'listening',
-    'no signal should read as listening');
-  check(api.listenFeedback(target, hz(20)).state === 'match',
-    'a near-perfect pitch should match');
-  check(api.listenFeedback(target, hz(-20)).state === 'match',
-    'a slightly flat pitch should still match');
-  check(api.listenFeedback(target, hz(75)).state === 'close',
-    'a pitch just outside the match window should read as close');
-  check(api.listenFeedback(target, hz(1200)).state === 'octave',
-    'the same note an octave up should read as octave, not a match');
-  check(api.listenFeedback(target, hz(250)).state === 'off',
-    'a different note should read as off');
-
-  // Hold-to-win: a steady match scores one hit, and the pitch must drop before
-  // the same note can score again (so a held tone is one deliberate win).
-  const match = { state: 'match' };
-  const off = { state: 'off' };
-  let s = { hold: 0, armed: true, hits: 0 };
-  for (let i = 0; i < 21; i++) s = api.advanceListen(s, match);
-  check(s.hits === 0, 'a brief blip should not score a hit yet');
-  s = api.advanceListen(s, match);
-  check(s.hits === 1, 'holding the right pitch registers exactly one hit');
-  check(s.armed === false, 'a hit disarms the meter until the pitch drops');
-  for (let i = 0; i < 40; i++) s = api.advanceListen(s, match);
-  check(s.hits === 1, 'holding longer does not rack up extra hits');
-  s = api.advanceListen(s, off);
-  check(s.armed === true && s.hold === 0, 'dropping the pitch re-arms the meter');
-  for (let i = 0; i < 22; i++) s = api.advanceListen(s, match);
-  check(s.hits === 2, 'a second held note registers a second hit');
-
-  // Listen mode is available on every string instrument.
-  check(api.listenEnabled('violin') === true, 'listen mode is enabled for the violin');
-  check(api.listenEnabled('viola') === true, 'listen mode is enabled for the viola');
-  check(api.listenEnabled('cello') === true, 'listen mode is enabled for the cello');
-  check(api.listenEnabled('trumpet') === false, 'listen mode is off for instruments this app does not teach');
-
-  // The play phase shows the microphone panel where listen mode is on.
-  const cello = api.CURRICULUM.cello;
-  const celloNote = cello.lessons.find(l => !l.type);
-  api.APP.instrumentId = 'violin';
-  api.APP.listen = null;
-  const violinHtml = api.renderPlayPhase(violin, violin.lessons.find(l => !l.type));
-  check(violinHtml.includes('listen-toggle') && violinHtml.includes('Listen &amp; match'),
-    'violin play phase should offer the listen panel');
-
-  api.APP.instrumentId = 'cello';
-  const celloPlayHtml = api.renderPlayPhase(cello, celloNote);
-  check(celloPlayHtml.includes('listen-toggle'),
-    'every string instrument offers the listen panel');
-
-  // While listening is active the panel shows the live readout and hit meter.
-  api.APP.instrumentId = 'violin';
-  api.APP.listen = { running: true, state: 'match', cents: 10, hits: 2, done: false, freq: 233 };
-  const liveHtml = api.renderPlayPhase(cello, celloNote);
-  check(liveHtml.includes('listen-card') && liveHtml.includes('listen-meter') &&
-    liveHtml.includes('listen-detected'),
-    'active listening should show the readout and hit meter');
-  api.APP.listen = null;
-  api.APP.instrumentId = 'violin';
 }
 
 // ── 1d. First-sound guide ──────────────────────────────────────────────────
