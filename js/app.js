@@ -16,6 +16,9 @@ const APP = {
   instrumentId: null,
   lessonIndex: 0,
   phase: 'present',
+  game: null,
+  showReference: false,
+  referenceLessonIndex: 0,
   quiz: null,
   // Mixed quiz set for note lessons: the note being taught plus prior notes.
   quizQueue: [],
@@ -1803,12 +1806,16 @@ function renderMapScreen() {
 
     const connector = i === 0 ? '' : `<div class="map-connector ${prog.completed[inst.lessons[i-1].id] ? 'done' : ''}"></div>`;
     const action = unlocked ? `data-action="open-lesson" data-index="${i}"` : `data-action="locked-node"`;
+    const refIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+    const refBtn = (unlocked && !isReview && !isSongLesson(lesson))
+      ? `<button class="map-ref-btn" data-action="open-reference" data-index="${i}" title="View reference">${refIcon}</button>`
+      : '';
 
     return `
       <div class="map-node-wrap">
         ${connector}
         <div class="map-node ${stateCls}" ${action}>${inner}</div>
-        <div class="map-node-label">${label}</div>
+        <div class="map-node-label">${label}${refBtn}</div>
         ${masteryHtml}
       </div>`;
   }).join('');
@@ -1866,6 +1873,7 @@ function renderMapScreen() {
           <button class="btn btn-secondary" data-action="import-song">+ Import Song</button>
           <input type="file" id="import-file-input" accept=".xml,.musicxml" style="display:none"/>
         </div>
+        ${doneCount > 0 ? `<button class="btn btn-secondary game-launch-btn" data-action="open-game" style="margin-top:12px;width:100%">🎯 ${t('Sight Reading Challenge')}</button>` : ''}
         <div class="map-guide">
           <button class="map-guide-link" data-action="open-lookup">🎼 Fingering chart</button>
           <button class="map-guide-link" data-action="open-tutorial">❔ How this app works</button>
@@ -3151,6 +3159,135 @@ function renderCompletePhase(inst, lesson) {
     </div>`;
 }
 
+
+// ── REFERENCE OVERLAY ──────────────────────────────────────────────────────
+// A quick peek at a note's fingering and staff position, reachable from the
+// lesson map without leaving the screen.
+function renderReferenceOverlay() {
+  const inst = getInstrument(APP.instrumentId);
+  const lesson = getLesson(APP.instrumentId, APP.referenceLessonIndex);
+  if (!lesson || isSongLesson(lesson) || isReviewLesson(lesson)) return '';
+  const fingeringSvg = Graphics.fingeringSVG(inst.fingeringType, lesson.fingeringState, inst.accentColor, 120);
+  const staffSvg = Graphics.staffSVG({ pos: lesson.staffStep, accidental: lesson.accidental, clef: inst.clef, accentColor: inst.accentColor, width: 120 });
+  return `
+    <div class="screen active reference-overlay" id="reference-overlay">
+      <div class="reference-content">
+        <div class="reference-header">
+          <span class="reference-note-name">${escapeHtml(noteDisplayName(t(lesson.noteName)))}</span>
+          <button class="btn-icon" data-action="close-reference" style="background:none;border:none;cursor:pointer;font-size:24px;">✕</button>
+        </div>
+        <div class="reference-diagrams">
+          <div class="reference-diagram">
+            <div class="reference-diagram-label">${t('Fingering')}</div>
+            <div class="reference-diagram-svg">${fingeringSvg}</div>
+          </div>
+          <div class="reference-diagram">
+            <div class="reference-diagram-label">${t('On the staff')}</div>
+            <div class="reference-diagram-svg">${staffSvg}</div>
+          </div>
+        </div>
+        <div class="reference-description">${escapeHtml(t(lesson.description))}</div>
+        <div class="reference-prompt">${escapeHtml(t(lesson.prompt))}</div>
+      </div>
+    </div>`;
+}
+
+// ── SIGHT-READING GAME ─────────────────────────────────────────────────────
+function renderGameScreen() {
+  const state = APP.game || {};
+  const score = state.score || 0;
+  const total = state.total || 0;
+  const timeLeft = (state.timeLeft === undefined) ? 30 : state.timeLeft;
+  const current = state.currentNote;
+
+  let noteDisplay = '';
+  if (current && state.showingResult === undefined) {
+    const inst = getInstrument(APP.instrumentId);
+    const staffSvg = Graphics.staffSVG({ pos: current.staffStep, accidental: current.accidental, clef: inst.clef, accentColor: inst.accentColor, width: 100 });
+    noteDisplay = `<div class="game-staff">${staffSvg}</div>`;
+  } else if (current && state.showingResult !== undefined) {
+    noteDisplay = `<div class="game-result">${state.showingResult ? '\u2713' : '\u2717'} ${escapeHtml(noteDisplayName(t(current.noteName)))}</div>`;
+  }
+
+  const options = (state.choices || []).map(c =>
+    `<button class="btn game-option-btn" data-action="game-answer" data-note="${escapeHtml(c)}">${escapeHtml(noteDisplayName(t(c)))}</button>`).join('');
+
+  const progressHtml = `<div class="game-progress">${score}/${total}</div>`;
+  const timerHtml = `<div class="game-timer">${timeLeft}s</div>`;
+
+  return `
+    <div class="screen active game-screen">
+      <div class="game-header">
+        <span class="game-title">${t('Sight Reading')}</span>
+        ${timerHtml}
+      </div>
+      <div class="game-body">
+        <div class="game-score-bar">${progressHtml}</div>
+        ${noteDisplay}
+        <div class="game-options">${options}</div>
+      </div>
+      ${timeLeft <= 0 ? `
+        <div class="game-over">
+          <div class="game-over-score">${score} / ${total}</div>
+          <div class="game-over-pct">${total ? Math.round(score / total * 100) : 0}%</div>
+          <button class="btn btn-primary" data-action="game-replay">${t('Play again')}</button>
+          <button class="btn btn-secondary" data-action="close-game">${t('Back')}</button>
+        </div>
+      ` : ''}
+    </div>`;
+}
+
+function initGame() {
+  const inst = getInstrument(APP.instrumentId);
+  const learned = getLearnedNotes(APP.instrumentId);
+  const pool = learned.length >= 4 ? learned : (inst.lessons || []).filter(l => !isReviewLesson(l) && !isSongLesson(l));
+  const GAME_DURATION = 30;
+  APP.game = {
+    score: 0,
+    total: 0,
+    timeLeft: GAME_DURATION,
+    currentNote: null,
+    choices: [],
+    showingResult: undefined,
+    pool: shuffle(pool.slice()),
+    poolIndex: 0,
+    timer: null,
+  };
+  nextGameNote();
+  startGameTimer();
+}
+
+function nextGameNote() {
+  const game = APP.game;
+  if (!game || game.timeLeft <= 0) return;
+  const note = game.pool[game.poolIndex % game.pool.length];
+  game.poolIndex++;
+
+  const allNoteNames = game.pool.map(n => n.noteName);
+  const uniqueNames = [...new Set(allNoteNames)];
+  const correctName = note.noteName;
+  const distractors = shuffle(uniqueNames.filter(n => n !== correctName)).slice(0, 3);
+  const choices = shuffle([correctName, ...distractors]);
+
+  game.currentNote = note;
+  game.choices = choices;
+  game.showingResult = undefined;
+}
+
+function startGameTimer() {
+  if (APP.game && APP.game.timer) clearInterval(APP.game.timer);
+  APP.game.timer = setInterval(() => {
+    if (!APP.game) return;
+    APP.game.timeLeft--;
+    if (APP.game.timeLeft <= 0) {
+      clearInterval(APP.game.timer);
+      APP.game.timer = null;
+      APP.game.timeLeft = 0;
+    }
+    if (APP.screen === 'game') render();
+  }, 1000);
+}
+
 // ── MASTER RENDER ───────────────────────────────────────────────────────
 function render() {
   const app = document.getElementById('app');
@@ -3160,6 +3297,7 @@ function render() {
   else if (APP.screen === 'report') html = renderReportScreen();
   else if (APP.screen === 'digest') html = renderDigestScreen();
   else if (APP.screen === 'tutorial') html = renderTutorialScreen();
+  else if (APP.screen === 'game') html = renderGameScreen();
   else if (APP.screen === 'map') html = renderMapScreen();
   else if (APP.screen === 'practice') html = renderPracticeScreen();
   else if (APP.screen === 'ear') html = renderEarScreen();
@@ -3167,6 +3305,14 @@ function render() {
   else if (APP.screen === 'lookup') html = renderLookupScreen();
   else if (APP.screen === 'lesson') html = renderLessonScreen();
   app.innerHTML = translateHtml(html);
+  if (APP.showReference) {
+    const refHtml = renderReferenceOverlay();
+    if (refHtml) app.insertAdjacentHTML('beforeend', refHtml);
+    const overlay = document.getElementById('reference-overlay');
+    if (overlay) overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) { APP.showReference = false; render(); }
+    });
+  }
   renderToolWidget();
 }
 
@@ -3760,6 +3906,59 @@ function handleAction(action, el) {
 
     case 'close-lookup':
       APP.screen = APP.lookupReturn === 'practice' ? 'practice' : 'map';
+      render();
+      break;
+
+    // ── Reference overlay ─────────────────────────────────────────────
+    case 'open-reference': {
+      const idx = parseInt(el.dataset.index, 10);
+      if (!isNaN(idx)) APP.referenceLessonIndex = idx;
+      APP.showReference = true;
+      render();
+      break;
+    }
+
+    case 'close-reference':
+      APP.showReference = false;
+      render();
+      break;
+
+    // ── Sight-reading game ────────────────────────────────────────────
+    case 'open-game':
+      APP.screen = 'game';
+      render();
+      initGame();
+      break;
+
+    case 'close-game': {
+      if (APP.game && APP.game.timer) clearInterval(APP.game.timer);
+      APP.game = null;
+      APP.screen = 'map';
+      render();
+      break;
+    }
+
+    case 'game-answer': {
+      const game = APP.game;
+      if (!game || game.showingResult !== undefined || game.timeLeft <= 0) return;
+      const guess = el.dataset.note;
+      const correct = guess === game.currentNote.noteName;
+      game.total++;
+      if (correct) game.score++;
+      game.showingResult = correct;
+      render();
+      setTimeout(() => {
+        if (APP.screen === 'game' && APP.game && APP.game.timeLeft > 0) {
+          nextGameNote();
+          render();
+        }
+      }, 700);
+      break;
+    }
+
+    case 'game-replay':
+      if (APP.game && APP.game.timer) clearInterval(APP.game.timer);
+      initGame();
       render();
       break;
 
