@@ -1363,7 +1363,7 @@ function showNamePrompt() {
   overlay.className = 'name-overlay';
   overlay.innerHTML = translateHtml(`
     <div class="name-modal">
-      <div style="display:flex;justify-content:flex-end;width:100%"><button class="theme-toggle" data-action="name-toggle-language" title="${t('Language')}">${getLang() === 'pt' ? 'PT' : 'EN'}</button></div>
+      <div style="display:flex;justify-content:flex-end;width:100%"><button class="theme-toggle" data-action="name-toggle-language" title="${t('Language')}">${getLang() === 'pt' ? 'PT' : getLang() === 'fr' ? 'FR' : 'EN'}</button></div>
       <div class="name-modal-icon">🎵</div>
       <div class="name-modal-title">${t('Welcome to Preludio Strings!')}</div>
       <div class="name-modal-sub">${t("What's your name?")}</div>
@@ -1387,7 +1387,9 @@ function showNamePrompt() {
   submit.addEventListener('click', submitName);
   input.addEventListener('keydown', e => { if (e.key === 'Enter') submitName(); });
   overlay.querySelector('[data-action="name-toggle-language"]').addEventListener('click', () => {
-    setLang(getLang() === 'pt' ? 'en' : 'pt');
+    const cur = getLang();
+    const next = cur === 'en' ? 'pt' : cur === 'pt' ? 'fr' : 'en';
+    setLang(next);
     document.body.querySelector('.name-overlay')?.remove();
     showNamePrompt();
   });
@@ -1521,7 +1523,7 @@ function renderSelectScreen() {
         <div class="select-sub">${sub}</div>
       </div>
       <div class="select-hero-settings">
-        <button class="theme-toggle" data-action="toggle-language" title="${t('Language')}">${getLang() === 'pt' ? 'PT' : 'EN'}</button>
+        <button class="theme-toggle" data-action="toggle-language" title="${t('Language')}">${getLang() === 'pt' ? 'PT' : getLang() === 'fr' ? 'FR' : 'EN'}</button>
         <button class="theme-toggle" data-action="toggle-theme" title="Switch to ${getTheme() === 'light' ? 'dark' : 'light'} theme">${getTheme() === 'light' ? '\u{1F319}' : '\u2600\uFE0F'}</button>
         <button class="theme-toggle settings-gear" data-action="open-settings" title="Settings">\u{2699}\u{FE0F}</button>
       </div>
@@ -3528,10 +3530,13 @@ function handleAction(action, el) {
       render();
       break;
 
-    case 'toggle-language':
-      setLang(getLang() === 'pt' ? 'en' : 'pt');
+    case 'toggle-language': {
+      const cur = getLang();
+      const next = cur === 'en' ? 'pt' : cur === 'pt' ? 'fr' : 'en';
+      setLang(next);
       render();
       break;
+    }
     case 'toggle-theme':
       toggleTheme();
       render();

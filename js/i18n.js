@@ -3,16 +3,18 @@
 // getLang, initLang, applyI18nToDOM.
 
 const LANG_STORAGE_KEY = 'preludioStringsLang';
+const OVERRIDE_STORAGE_KEY = 'preludioStringsLangOverrides';
 
 // Default language: browser locale (pt* -> 'pt', else 'en').
 function detectDefaultLang() {
   try {
     const saved = localStorage.getItem(LANG_STORAGE_KEY);
-    if (saved === 'pt' || saved === 'en') return saved;
+    if (saved === 'pt' || saved === 'en' || saved === 'fr') return saved;
   } catch (e) {}
   try {
     const nav = (typeof navigator !== 'undefined' && (navigator.language || navigator.userLanguage)) || 'en';
     if (/^pt/i.test(nav)) return 'pt';
+    if (/^fr/i.test(nav)) return 'fr';
   } catch (e) {}
   return 'en';
 }
@@ -20,7 +22,7 @@ function detectDefaultLang() {
 var LANG = detectDefaultLang();
 
 // Translation tables. 'en' is identity (source strings). 'pt' holds PT-BR.
-var TRANSLATIONS = { en: {}, pt: {} };
+var TRANSLATIONS = { en: {}, pt: {}, fr: {} };
 
 var NOTE_TO_SOLFEGE_PT = {
   'C': 'Dó', 'C#': 'Dó#', 'Cb': 'Sib', 'Db': 'Réb', 'D': 'Ré', 'D#': 'Ré#', 'Eb': 'Mib',
@@ -38,14 +40,43 @@ function noteToSolfeggio(str) {
   return str;
 }
 
+// User overrides
+function getUserOverrides(lang) {
+  try {
+    const raw = localStorage.getItem(OVERRIDE_STORAGE_KEY + '_' + lang);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) { return {}; }
+}
+function setUserOverride(lang, key, value) {
+  try {
+    const overrides = getUserOverrides(lang);
+    if (value === null || value === '' || value === TRANSLATIONS[lang]?.[key]) {
+      delete overrides[key];
+    } else {
+      overrides[key] = value;
+    }
+    localStorage.setItem(OVERRIDE_STORAGE_KEY + '_' + lang, JSON.stringify(overrides));
+  } catch (e) {}
+}
+function clearUserOverrides(lang) {
+  try { localStorage.removeItem(OVERRIDE_STORAGE_KEY + '_' + lang); } catch (e) {}
+}
+
 function t(str) {
   if (typeof str !== 'string') return str;
+  const overrides = getUserOverrides(LANG);
+  if (Object.prototype.hasOwnProperty.call(overrides, str)) {
+    return overrides[str];
+  }
   if (LANG === 'pt') {
     if (TRANSLATIONS.pt && Object.prototype.hasOwnProperty.call(TRANSLATIONS.pt, str)) {
       return TRANSLATIONS.pt[str];
     }
     const sol = noteToSolfeggio(str);
     if (sol !== str) return sol;
+  }
+  if (LANG === 'fr' && TRANSLATIONS.fr && Object.prototype.hasOwnProperty.call(TRANSLATIONS.fr, str)) {
+    return TRANSLATIONS.fr[str];
   }
   return str;
 }
@@ -64,7 +95,7 @@ function tFill(template, vars) {
 
 function getLang() { return LANG; }
 function setLang(lang) {
-  if (lang !== 'pt' && lang !== 'en') return;
+  if (lang !== 'pt' && lang !== 'en' && lang !== 'fr') return;
   LANG = lang;
   try { localStorage.setItem(LANG_STORAGE_KEY, lang); } catch (e) {}
   if (typeof render === 'function') render();
@@ -573,4 +604,127 @@ TRANSLATIONS.pt = {
   "👂 Golden ear! Perfect echo.": "👂 Ouvido de ouro! Eco perfeito.",
   "📈 Your week in music is ready!": "📈 A sua semana de música está pronta!",
   "📋 Progress report": "📋 Relatório de progresso",
+};
+
+// French (Canadian French) translations - starter set
+TRANSLATIONS.fr = {
+  "Language": "Langue",
+  "Welcome to Preludio Strings!": "Bienvenue au Preludio Strings !",
+  "What's your name?": "Quel est votre nom ?",
+  "Your name...": "Votre nom...",
+  "Start practicing": "Commencer à pratiquer",
+  "Lesson": "Leçon",
+  "Map": "Carte",
+  "Practice": "Pratique",
+  "Settings": "Paramètres",
+  "Report": "Rapport",
+  "Fingering chart": "Doigtés",
+  "Metronome": "Métronome",
+  "Tuner": "Accordeur",
+  "Play": "Jouer",
+  "Listen": "Écouter",
+  "Next": "Suivant",
+  "Back": "Retour",
+  "Complete": "Terminé",
+  "Review": "Réviser",
+  "Song": "Chanson",
+  "Notes": "Notes",
+  "Level": "Niveau",
+  "Badges": "Badges",
+  "Start": "Démarrer",
+  "Stop": "Arrêter",
+  "Save": "Enregistrer",
+  "Cancel": "Annuler",
+  "Done": "Terminé",
+  "Close": "Fermer",
+  "Back to my path": "Retour à mon parcours",
+  "Got it — let's play!": "Compris — jouons !",
+  "Ready to play?": "Prêt à jouer ?",
+  "Continue": "Continuer",
+  "Switch instrument": "Changer d'instrument",
+  "Ready for your first lesson": "Prêt pour votre première leçon",
+  "First notes, first wins.": "Premières notes, premières victoires.",
+  "Practice today to start a streak!": "Pratiquez aujourd'hui pour commencer une série !",
+  "No badges yet": "Aucun badge pour l'instant",
+  "Focus areas": "Points à travailler",
+  "Learn a couple of notes first.": "Apprenez quelques notes d'abord.",
+  "How many can you get?": "Combien pouvez-vous en avoir ?",
+  "Finish a couple of lessons to unlock the timed drills.": "Terminez quelques leçons pour débloquer les exercices chronométrés.",
+  "Sight-reading": "Lecture à vue",
+  "Finger gym": "Gymnastique des doigts",
+  "Which note is this?": "Quelle est cette note ?",
+  "Play again": "Rejouer",
+  "Back": "Retour",
+  "Instruments": "Instruments",
+  "No practice recorded yet — play a lesson to start the report.": "Aucune pratique enregistrée — jouez une leçon pour commencer le rapport.",
+  "New here? Make your first sound": "Nouveau ? Faites votre premier son",
+  "Warm up your sound": "Échauffez votre son",
+  "Practice drills": "Exercices de pratique",
+  "Timed games to build speed and confidence.": "Jeux chronométrés pour gagner en vitesse et confiance.",
+  "Learn 2 notes to unlock timed drills.": "Apprenez 2 notes pour débloquer les exercices chronométrés.",
+  "Sight Reading Challenge": "Défi de lecture à vue",
+  "How this app works": "Comment fonctionne cette app",
+  "Review this note": "Réviser cette note",
+  "Meet your next note": "Rencontrez votre prochaine note",
+  "Fingering": "Doigté",
+  "On the staff": "Sur la portée",
+  "Sheet music": "Partition",
+  "Note": "Note",
+  "of": "de",
+  "Prev": "Précédent",
+  "Next": "Suivant",
+  "Replay": "Rejouer",
+  "Play whole melody": "Jouer la mélodie entière",
+  "No notes to show yet.": "Aucune note à afficher pour l'instant.",
+  "Student name": "Nom de l'élève",
+  "Save": "Enregistrer",
+  "Reset progress": "Réinitialiser le progrès",
+  "Switch instrument": "Changer d'instrument",
+  "My path": "Mon parcours",
+  "Continue": "Continuer",
+  "notes": "notes",
+  "songs": "chansons",
+  "Your Stats": "Vos statistiques",
+  "Total XP": "XP total",
+  "Lessons done": "Leçons terminées",
+  "Day streak": "Jours consécutifs",
+  "Per instrument": "Par instrument",
+  "Recent activity": "Activité récente",
+  "Clear analytics data": "Effacer les données d'analyse",
+  "Play again": "Rejouer",
+  "Badges": "Badges",
+  "Focus:": "Focus :",
+  "Tune": "Accorder",
+  "Count-in": "Compte",
+  "Stop": "Arrêter",
+  "Start": "Démarrer",
+  "Lessons": "Leçons",
+  "Hear it": "Entendre",
+  "Play note": "Jouer la note",
+  "Hear the model": "Entendre le modèle",
+  "Listen to how it sounds...": "Écoutez comme ça sonne...",
+  "Listen...": "Écoutez...",
+  "Get ready...": "Préparez-vous...",
+  "Go!": "Allez !",
+  "Try again": "Réessayez",
+  "Next note": "Note suivante",
+  "Skip": "Passer",
+  "Hint": "Indice",
+  "Practice": "Pratique",
+  "Practice report": "Rapport de pratique",
+  "Quick tour": "Visite rapide",
+  "First sound": "Premier son",
+  "Back to": "Retour à",
+  "Back to my path": "Retour à mon parcours",
+  "Got it — let's play!": "Compris — jouons !",
+  "Ready,": "Prêt,",
+  "You're set up on": "Vous êtes configuré sur",
+  "Pick up where you left off.": "Continuez où vous vous êtes arrêté.",
+  "Continue": "Continuer",
+  "Ready for your first lesson": "Prêt pour votre première leçon",
+  "notes": "notes",
+  "songs": "chansons",
+  "First notes, first wins.": "Premières notes, premières victoires.",
+  "Language": "Langue",
+  "Welcome to Preludio Strings!": "Bienvenue au Preludio Strings !",
 };
