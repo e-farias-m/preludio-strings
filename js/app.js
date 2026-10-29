@@ -4373,3 +4373,22 @@ loadMotivation();
 if (!getStudentName()) showNamePrompt();
 render();
 maybeRemindDigest();
+
+// ── SERVICE WORKER UPDATE NOTIFICATION ──────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (typeof showToast === 'function') showToast('Update available — reload to get the latest version.');
+  });
+  navigator.serviceWorker.ready.then(reg => {
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+      if (newWorker) {
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            if (typeof showToast === 'function') showToast('Update available — reload to get the latest version.');
+          }
+        });
+      }
+    });
+  }).catch(() => {});
+}

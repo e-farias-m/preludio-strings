@@ -619,6 +619,7 @@ TRANSLATIONS.pt = {
   "👂 Golden ear! Perfect echo.": "👂 Ouvido de ouro! Eco perfeito.",
   "📈 Your week in music is ready!": "📈 A sua semana de música está pronta!",
   "📋 Progress report": "📋 Relatório de progresso",
+  "Update available — reload to get the latest version.": "Atualização disponível — recarregue para obter a versão mais recente.",
 };
 
 // French (Canadian French) translations - starter set
@@ -760,4 +761,5 @@ TRANSLATIONS.fr = {
   "Translations reset.": "Traductions réinitialisées.",
   "Reset": "Réinitialiser",
   "Welcome to Preludio Strings!": "Bienvenue au Preludio Strings !",
+  "Update available — reload to get the latest version.": "Mise à jour disponible — rechargez pour obtenir la dernière version.",
 };
