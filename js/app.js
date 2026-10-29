@@ -729,6 +729,11 @@ function centsLabel(cents) {
   return (r > 0 ? '+' : '') + r + ' cents ' + (r > 0 ? 'sharp' : 'flat');
 }
 
+function noteDisplayName(name) {
+  if (typeof name !== 'string') return name;
+  return name.replace(/[0-9]/g, '');
+}
+
 // ── TEACHER / PARENT PRACTICE REPORT ───────────────────────────────────────
 // A shareable summary of what a student has learned, how strong each note is,
 // and which notes to watch. Built from the same progress + skill records the
@@ -743,7 +748,7 @@ function getInstrumentReport(instrumentId) {
   learned.forEach(l => { mastery[getMasteryLevel(getNoteMastery(instrumentId, l.id))]++; });
   const weak = getWeakestNotes(instrumentId, 3)
     .filter(w => w.attempts > 0)
-    .map(w => ({ name: t(w.lesson.noteName), accuracy: Math.round((w.accuracy || 0) * 100) }));
+    .map(w => ({ name: noteDisplayName(t(w.lesson.noteName)), accuracy: Math.round((w.accuracy || 0) * 100) }));
   return {
     id: instrumentId,
     name: t(inst.name),
@@ -1643,10 +1648,10 @@ function renderPlanCard(instrumentId) {
     let label = t('Practise');
     if (it.type === 'note') {
       const n = findLessonById(instrumentId, it.targetId);
-      label = 'Review ' + (n ? t(n.noteName) : 'note');
+      label = 'Review ' + (n ? noteDisplayName(t(n.noteName)) : 'note');
     } else if (it.type === 'song') {
       const s = findLessonById(instrumentId, it.targetId);
-      label = 'Play ' + (s ? t(s.noteName) : 'song');
+      label = 'Play ' + (s ? noteDisplayName(t(s.noteName)) : 'song');
     } else if (it.type === 'sprint') {
       label = (it.mode === SPRINT_MODES.FINGER ? 'Finger gym' : 'Sight-reading') + ' sprint';
     }
@@ -1701,7 +1706,7 @@ function renderMapScreen() {
     let stateCls = 'locked';
     let inner = `<span class="map-node-lock">🔒</span>`;
     let masteryHtml = '';
-    let label = t(lesson.noteName);
+    let label = noteDisplayName(t(lesson.noteName));
 
     if (isReview && unlocked && completed) {
       stateCls = 'review-done';
@@ -1714,14 +1719,14 @@ function renderMapScreen() {
       const stars = prog.completed[lesson.id].stars;
       const mastery = getNoteMastery(APP.instrumentId, lesson.id);
       const masteryLevel = getMasteryLevel(mastery);
-      inner = `<span class="map-node-note">${escapeHtml(t(lesson.noteName))}</span><span class="map-node-star">${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}</span>`;
+      inner = `<span class="map-node-note">${escapeHtml(noteDisplayName(t(lesson.noteName)))}</span><span class="map-node-star">${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}</span>`;
       masteryHtml = `<div class="map-node-mastery mastery-${masteryLevel}">${getMasteryLabel(masteryLevel)}</div>`;
     } else if (unlocked && !completed) {
       stateCls = 'current';
-      inner = `<span class="map-node-note">${escapeHtml(t(lesson.noteName))}</span>`;
+      inner = `<span class="map-node-note">${escapeHtml(noteDisplayName(t(lesson.noteName)))}</span>`;
     } else if (unlocked) {
       stateCls = 'available';
-      inner = `<span class="map-node-note">${escapeHtml(t(lesson.noteName))}</span>`;
+      inner = `<span class="map-node-note">${escapeHtml(noteDisplayName(t(lesson.noteName)))}</span>`;
     }
 
     const connector = i === 0 ? '' : `<div class="map-connector ${prog.completed[inst.lessons[i-1].id] ? 'done' : ''}"></div>`;
@@ -1741,8 +1746,8 @@ function renderMapScreen() {
     const stateCls = completed ? 'done' : 'current';
     const stars = completed ? prog.completed[s.id].stars : 0;
     const inner = completed
-      ? `<span class="map-node-note">${escapeHtml(t(s.noteName))}</span><span class="map-node-star">${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}</span>`
-      : `<span class="map-node-note">${escapeHtml(t(s.noteName))}</span>`;
+      ? `<span class="map-node-note">${escapeHtml(noteDisplayName(t(s.noteName)))}</span><span class="map-node-star">${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}</span>`
+      : `<span class="map-node-note">${escapeHtml(noteDisplayName(t(s.noteName)))}</span>`;
     const prevId = i === 0 ? inst.lessons[inst.lessons.length - 1]?.id : instImported[i - 1]?.id;
     const prevDone = prevId ? !!prog.completed[prevId] : false;
     const connector = inst.lessons.length > 0 || i > 0 ? `<div class="map-connector ${prevDone ? 'done' : ''}"></div>` : '';
@@ -1750,7 +1755,7 @@ function renderMapScreen() {
       <div class="map-node-wrap">
         ${connector}
         <div class="map-node ${stateCls}" data-action="open-imported-song" data-imported-index="${i}">${inner}</div>
-        <div class="map-node-label">${escapeHtml(t(s.noteName))}</div>
+        <div class="map-node-label">${escapeHtml(noteDisplayName(t(s.noteName)))}</div>
         <button class="btn-icon" data-action="delete-imported-song" data-imported-index="${i}" title="Delete imported song" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-danger);margin-top:2px">✕ Delete</button>
       </div>`;
   }).join('');
@@ -1871,9 +1876,9 @@ function renderLookupScreen() {
       + (learned ? '' : ' lookup-card-locked');
     const svg = fingeringSvg(inst, l, 46, learned ? instAccent(inst) : '#6b6b7d');
     return `
-      <button class="${cls}" data-action="lookup-select" data-id="${l.id}" aria-label="${escapeHtml(t(l.noteName))}">
+      <button class="${cls}" data-action="lookup-select" data-id="${l.id}" aria-label="${escapeHtml(noteDisplayName(t(l.noteName)))}">
         <div class="lookup-card-svg">${svg}</div>
-        <div class="lookup-card-name">${escapeHtml(t(l.noteName))}</div>
+        <div class="lookup-card-name">${escapeHtml(noteDisplayName(t(l.noteName)))}</div>
       </button>`;
   }).join('');
 
@@ -1897,7 +1902,7 @@ function renderLookupScreen() {
               ${staffSvg}
             </div>
           </div>
-          <div class="lookup-name">${escapeHtml(t(selected.noteName))}</div>
+          <div class="lookup-name">${escapeHtml(noteDisplayName(t(selected.noteName)))}</div>
           <div class="lookup-desc">${escapeHtml(lessonText(selected))}</div>
           <button class="btn btn-secondary btn-wide" data-action="lookup-hear">\u{1F50A} Hear it</button>
         </div>
@@ -1924,7 +1929,7 @@ function renderWeakSpots(instrumentId) {
     const pct = Math.round((w.accuracy || 0) * 100);
     return `
       <div class="weak-row">
-        <div class="weak-name">${escapeHtml(t(w.lesson.noteName))}</div>
+        <div class="weak-name">${escapeHtml(noteDisplayName(t(w.lesson.noteName)))}</div>
         <div class="weak-bar"><div class="weak-bar-fill" style="width:${pct}%"></div></div>
         <div class="weak-pct">${pct}%</div>
       </div>`;
@@ -2027,7 +2032,7 @@ function renderEarScreen() {
     let label = String(i + 1);
     if (picked) {
       const n = findLessonById(APP.instrumentId, picked);
-      label = n ? t(n.noteName) : '?';
+      label = n ? noteDisplayName(t(n.noteName)) : '?';
       if (e.graded) cls += e.graded[i] ? ' ear-slot-ok' : ' ear-slot-bad';
       else cls += ' ear-slot-filled';
     } else {
@@ -2038,7 +2043,7 @@ function renderEarScreen() {
 
   const palette = learned.map(l => {
     const disabled = e && e.finished ? 'disabled' : '';
-    return `<button class="ear-key" data-action="ear-pick" data-id="${l.id}" ${disabled}>${escapeHtml(t(l.noteName))}</button>`;
+    return `<button class="ear-key" data-action="ear-pick" data-id="${l.id}" ${disabled}>${escapeHtml(noteDisplayName(t(l.noteName)))}</button>`;
   }).join('');
 
   const correct = e && e.graded ? earScore(e.graded) : 0;
@@ -2126,7 +2131,7 @@ function renderTunerPanel() {
   let cents = listening ? 'Listening…' : 'Press Tune';
   let offset = 50;
   if (detected) {
-    noteName = detected.note.noteName;
+    noteName = noteDisplayName(detected.note.noteName);
     cents = centsLabel(detected.cents);
     offset = Math.max(0, Math.min(100, 50 + (detected.cents / 50) * 50));
   }
@@ -2349,7 +2354,7 @@ function renderSprintView(inst) {
   const q = s.question;
   const promptHtml = q.mode === SPRINT_MODES.SIGHT
     ? `<div class="quiz-prompt-svg">${Graphics.staffSVG({ pos: q.prompt.staffStep, accidental: q.prompt.accidental, clef: inst.clef, accentColor: instAccent(inst), width: 100 })}</div>`
-    : `<div class="quiz-prompt-note">${escapeHtml(t(q.prompt.noteName))}</div>`;
+    : `<div class="quiz-prompt-note">${escapeHtml(noteDisplayName(t(q.prompt.noteName)))}</div>`;
 
   const optionsHtml = q.options.map(opt => {
     let cls = 'quiz-option';
@@ -2357,7 +2362,7 @@ function renderSprintView(inst) {
     let content;
     if (q.mode === SPRINT_MODES.SIGHT) {
       cls += ' text-only';
-      content = `<div class="quiz-option-note">${escapeHtml(t(opt.noteName))}</div>`;
+      content = `<div class="quiz-option-note">${escapeHtml(noteDisplayName(t(opt.noteName)))}</div>`;
     } else {
       content = `<div class="quiz-option-svg">${fingeringSvg(inst, opt, 72)}</div>`;
     }
@@ -2488,7 +2493,7 @@ function renderPresentPhase(inst, lesson) {
       </div>
       ${stringFingerCard(inst, lesson)}
       <div class="note-name-block">
-        <span class="note-name-big">${escapeHtml(t(lesson.noteName))}</span>
+        <span class="note-name-big">${escapeHtml(noteDisplayName(t(lesson.noteName)))}</span>
       </div>
       <div class="note-description">${escapeHtml(lessonText(lesson))}</div>
       ${transposeNote}
@@ -2572,7 +2577,7 @@ function renderSongPresentPhase(inst, lesson) {
 
   return `
     <div class="lesson-body">
-      <div class="lesson-instruction">${escapeHtml(t(lesson.noteName))}</div>
+      <div class="lesson-instruction">${escapeHtml(noteDisplayName(t(lesson.noteName)))}</div>
       <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:16px">Note ${currentNum} of ${totalNotes}</div>
       ${melodySvg ? `<div class="song-melody-wrap">
         <div class="present-diagram-label">Sheet music</div>
@@ -2590,7 +2595,7 @@ function renderSongPresentPhase(inst, lesson) {
       </div>
       ${stringFingerCard(inst, note)}
       <div class="note-name-block">
-        <span class="note-name-big">${note.noteName}</span>
+        <span class="note-name-big">${noteDisplayName(note.noteName)}</span>
       </div>
       <div class="note-description">${escapeHtml(lessonText(lesson))}</div>
       <div class="gap-md"></div>
@@ -2605,7 +2610,7 @@ function renderSongPresentPhase(inst, lesson) {
 function renderSongAudioPlayerContent(inst, lesson) {
   return `
     <div class="lesson-body" id="song-audio-body">
-      <div class="lesson-instruction">${escapeHtml(t(lesson.noteName))}</div>
+      <div class="lesson-instruction">${escapeHtml(noteDisplayName(t(lesson.noteName)))}</div>
       <div class="song-audio-status" id="song-audio-status">Tap play, then follow along with the recording.</div>
       <div class="beat-grid" id="song-audio-beats" style="justify-content:center;margin-bottom:20px">
         ${[1,2,3,4].map(n => `<div class="beat-cell count-in" data-beat="${n}"><span class="beat-num">${n}</span></div>`).join('')}
@@ -2902,11 +2907,11 @@ function renderQuizPhase(inst, lesson) {
   if (q.quizType === QUIZ_TYPES.FINGERING_TO_NOTE) {
     promptHtml = `<div class="quiz-prompt-svg">${fingeringSvg(inst, q.prompt, 100)}</div>`;
   } else if (q.quizType === QUIZ_TYPES.NOTE_TO_FINGERING) {
-    promptHtml = `<div class="quiz-prompt-note">${escapeHtml(t(q.prompt.noteName))}</div>`;
+    promptHtml = `<div class="quiz-prompt-note">${escapeHtml(noteDisplayName(t(q.prompt.noteName)))}</div>`;
   } else if (q.quizType === QUIZ_TYPES.STAFF_TO_NOTE) {
     promptHtml = `<div class="quiz-prompt-svg">${Graphics.staffSVG({ pos: q.prompt.staffStep, accidental: q.prompt.accidental, clef: inst.clef, accentColor: instAccent(inst), width: 100 })}</div>`;
   } else if (q.quizType === QUIZ_TYPES.NOTE_TO_STAFF) {
-    promptHtml = `<div class="quiz-prompt-note">${escapeHtml(t(q.prompt.noteName))}</div>`;
+    promptHtml = `<div class="quiz-prompt-note">${escapeHtml(noteDisplayName(t(q.prompt.noteName)))}</div>`;
   }
 
   // ── OPTIONS ──
@@ -2923,12 +2928,12 @@ function renderQuizPhase(inst, lesson) {
     let content = '';
     if (q.quizType === QUIZ_TYPES.FINGERING_TO_NOTE) {
       cls += ' text-only';
-      content = `<div class="quiz-option-note">${escapeHtml(t(opt.noteName))}</div>`;
+      content = `<div class="quiz-option-note">${escapeHtml(noteDisplayName(t(opt.noteName)))}</div>`;
     } else if (q.quizType === QUIZ_TYPES.NOTE_TO_FINGERING) {
       content = `<div class="quiz-option-svg">${fingeringSvg(inst, opt, 72)}</div>`;
     } else if (q.quizType === QUIZ_TYPES.STAFF_TO_NOTE) {
       cls += ' text-only';
-      content = `<div class="quiz-option-note">${escapeHtml(t(opt.noteName))}</div>`;
+      content = `<div class="quiz-option-note">${escapeHtml(noteDisplayName(t(opt.noteName)))}</div>`;
     } else if (q.quizType === QUIZ_TYPES.NOTE_TO_STAFF) {
       content = `<div class="quiz-option-svg">${Graphics.staffSVG({ pos: opt.staffStep, accidental: opt.accidental, clef: inst.clef, accentColor: instAccent(inst), width: 72 })}</div>`;
     }
@@ -2998,7 +3003,7 @@ function renderPlayPhase(inst, lesson) {
       <div class="play-layout">
         <div class="play-diagram-large">
           ${fingeringDiagram}
-          <span class="play-note-label">${escapeHtml(t(lesson.noteName))}</span>
+          <span class="play-note-label">${escapeHtml(noteDisplayName(t(lesson.noteName)))}</span>
         </div>
         <div class="beat-grid">${cells}${playCell}</div>
         <div class="play-status" id="play-status">Tap Start, then play along on the count.</div>
@@ -3026,7 +3031,7 @@ function renderCompletePhase(inst, lesson) {
       const color = getMasteryColor(level);
       return `
         <div class="review-note-row">
-          <span class="review-note-name">${note.noteName}</span>
+          <span class="review-note-name">${noteDisplayName(note.noteName)}</span>
           <span class="review-note-badge" style="background:${color}22;color:${color}">${getMasteryLabel(level)}</span>
         </div>`;
     }).join('');
@@ -3307,7 +3312,7 @@ function updateTunerReadout() {
     needleEl.style.left = '50%';
     return;
   }
-  noteEl.textContent = detected.note.noteName;
+  noteEl.textContent = noteDisplayName(detected.note.noteName);
   centsEl.textContent = centsLabel(detected.cents);
   needleEl.style.left = Math.max(0, Math.min(100, 50 + (detected.cents / 50) * 50)) + '%';
 }
