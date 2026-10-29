@@ -436,7 +436,7 @@ TRANSLATIONS.pt = {
   "Reach your weekly practice goal": "Alcance a sua meta semanal de prática",
   "Ready for your first lesson": "Pronto para a sua primeira aula",
   "Ready to play?": "Pronto para tocar?",
-  "Ready, ${escapeHtml(studentName)}?": "Pronto, ${escapeHtml(studentName)}?",
+  // Dead key removed (PT-06): handled by pattern instead.
   "Record yourself and compare with the model.": "Grave você mesmo e compare com o modelo.",
   "Recording — play now, then tap Stop.": "Gravando — toque agora e depois toque em Parar.",
   "Replay the call": "Repetir a chamada",
@@ -563,7 +563,7 @@ TRANSLATIONS.pt = {
   "You earn XP, streaks, and badges as you play, and the weekly recap shows how much you practiced. Ready? Let’s play!": "Você ganha XP, sequências e insígnias ao tocar, e o resumo da semana mostra quanto você praticou. Pronto? Vamos tocar!",
   "You got the basics down!": "Você domina o básico!",
   "You really know this note well!": "Você realmente domina esta nota!",
-  "You're set up on ${savedInst.shortName}. Pick up where you left off.": "Você está configurado em ${savedInst.shortName}. Continue de onde parou.",
+  // Dead key removed (PT-06): handled by pattern instead.
   "You're set up on {inst}": "Você está configurado em {inst}",
   "You're set up on {inst}. Pick up where you left off.": "Você está configurado em {inst}. Continue de onde parou.",
   "Your drills will favour the notes you miss most.": "Os seus exercícios vão priorizar as notas que você mais erra.",
