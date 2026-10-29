@@ -4370,6 +4370,7 @@ applyTheme(getTheme());
 initLang();
 loadProgress();
 loadMotivation();
+if (navigator.storage && typeof navigator.storage.persist === 'function') { navigator.storage.persist().catch(() => {}); }
 if (!getStudentName()) showNamePrompt();
 render();
 maybeRemindDigest();
