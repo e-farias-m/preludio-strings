@@ -4575,7 +4575,7 @@ render();
 maybeRemindDigest();
 
 // ── SERVICE WORKER UPDATE NOTIFICATION ──────────────────────────────────────
-if ('serviceWorker' in navigator) {
+if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (typeof showToast === 'function') showToast('Update available — reload to get the latest version.');
   });
