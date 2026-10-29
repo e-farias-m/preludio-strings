@@ -4,7 +4,7 @@
   "description": "First notes on your string instrument — fingerings, notes, and your first sounds.",
   "start_url": "./",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "any",
   "theme_color": "#0E0D1C",
   "background_color": "#0E0D1C",
   "icons": [

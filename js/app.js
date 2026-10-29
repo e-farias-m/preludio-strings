@@ -1,3 +1,4 @@
+const LS = { getItem: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, setItem: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, removeItem: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 // i18n fallbacks for environments that load app.js without i18n.js (e.g. tests)
 if (typeof t !== 'function') { var t = function(s){ return s; }; }
 if (typeof initLang !== 'function') { var initLang = function(){}; }
@@ -92,13 +93,13 @@ function clampSpeed(v) {
   return Math.max(SPEED_MIN, Math.min(SPEED_MAX, Number(n.toFixed(2))));
 }
 function getSavedSpeed() {
-  try { return clampSpeed(localStorage.getItem(SONG_SPEED_KEY)); }
+  try { return clampSpeed(LS.getItem(SONG_SPEED_KEY)); }
   catch (e) { return 1; }
 }
 function setSavedSpeed(v) {
   // localStorage may be unavailable (private mode); the in-memory APP value
   // still drives playback, so a failure here is harmless.
-  try { localStorage.setItem(SONG_SPEED_KEY, String(v)); } catch (e) {}
+  try { LS.setItem(SONG_SPEED_KEY, String(v)); } catch (e) {}
 }
 // Milliseconds per beat at the current practice speed, given the song's own
 // written tempo (baseBpm). The single source of truth for count-in and song.
@@ -109,44 +110,44 @@ function msPerBeatAt(baseBpm, speed) {
 // APP is defined above these helpers, so the persisted speed is loaded here.
 APP.songSpeed = getSavedSpeed();
 
-function getStudentName() { return localStorage.getItem(NAME_KEY) || ''; }
-function setStudentName(name) { localStorage.setItem(NAME_KEY, name); }
+function getStudentName() { return LS.getItem(NAME_KEY) || ''; }
+function setStudentName(name) { LS.setItem(NAME_KEY, name); }
 
 // Instruments whose "how to use the app" tour the student has already seen.
 function getTutorialSeen(id) {
   let seen = [];
-  try { seen = JSON.parse(localStorage.getItem(TUTORIAL_KEY) || '[]'); } catch (e) {}
+  try { seen = JSON.parse(LS.getItem(TUTORIAL_KEY) || '[]'); } catch (e) {}
   return Array.isArray(seen) && seen.indexOf(id) !== -1;
 }
 function markTutorialSeen(id) {
   if (getTutorialSeen(id)) return;
   let seen = [];
-  try { seen = JSON.parse(localStorage.getItem(TUTORIAL_KEY) || '[]'); } catch (e) {}
+  try { seen = JSON.parse(LS.getItem(TUTORIAL_KEY) || '[]'); } catch (e) {}
   if (!Array.isArray(seen)) seen = [];
   seen.push(id);
-  localStorage.setItem(TUTORIAL_KEY, JSON.stringify(seen));
+  LS.setItem(TUTORIAL_KEY, JSON.stringify(seen));
 }
 
 // Instruments where the student has opened the "make your first sound" guide.
 function getFirstSoundSeenMap() {
-  try { return JSON.parse(localStorage.getItem(FIRST_SOUND_KEY) || '{}') || {}; }
+  try { return JSON.parse(LS.getItem(FIRST_SOUND_KEY) || '{}') || {}; }
   catch (e) { return {}; }
 }
 function getFirstSoundSeen(instrumentId) { return !!getFirstSoundSeenMap()[instrumentId]; }
 function markFirstSoundSeen(instrumentId) {
   const seen = getFirstSoundSeenMap();
   seen[instrumentId] = true;
-  localStorage.setItem(FIRST_SOUND_KEY, JSON.stringify(seen));
+  LS.setItem(FIRST_SOUND_KEY, JSON.stringify(seen));
 }
 
 // Last instrument the student opened — lets the home screen focus on one
 // instrument instead of the full set until they ask to switch.
-function getSavedInstrument() { return localStorage.getItem(INSTRUMENT_KEY) || ''; }
-function setSavedInstrument(id) { localStorage.setItem(INSTRUMENT_KEY, id); }
-function clearSavedInstrument() { localStorage.removeItem(INSTRUMENT_KEY); }
+function getSavedInstrument() { return LS.getItem(INSTRUMENT_KEY) || ''; }
+function setSavedInstrument(id) { LS.setItem(INSTRUMENT_KEY, id); }
+function clearSavedInstrument() { LS.removeItem(INSTRUMENT_KEY); }
 
 // ── THEME ──────────────────────────────────────────────────────────────────
-function getTheme() { return localStorage.getItem(THEME_KEY) || 'light'; }
+function getTheme() { return LS.getItem(THEME_KEY) || 'light'; }
 function applyTheme(theme) {
   if (typeof document !== 'undefined' && document.documentElement) {
     document.documentElement.setAttribute('data-theme', theme);
@@ -155,7 +156,7 @@ function applyTheme(theme) {
   }
 }
 function setTheme(theme) {
-  localStorage.setItem(THEME_KEY, theme);
+  LS.setItem(THEME_KEY, theme);
   applyTheme(theme);
 }
 function toggleTheme() { setTheme(getTheme() === 'light' ? 'dark' : 'light'); }
@@ -250,7 +251,7 @@ function getMasteryLabel(level) {
 // ── PROGRESS PERSISTENCE ───────────────────────────────────────────────────
 function loadProgress() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = LS.getItem(STORAGE_KEY);
     APP.progress = raw ? JSON.parse(raw) : {};
   } catch (e) {
     APP.progress = {};
@@ -269,7 +270,7 @@ function loadProgress() {
 
 function saveProgress() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(APP.progress));
+    LS.setItem(STORAGE_KEY, JSON.stringify(APP.progress));
   } catch (e) { /* storage unavailable — fail silently */ }
 }
 
@@ -962,7 +963,7 @@ function todayKey(d = new Date()) {
 
 function loadMotivation() {
   try {
-    const raw = localStorage.getItem(MOTIVATION_KEY);
+    const raw = LS.getItem(MOTIVATION_KEY);
     APP.motivation = raw ? JSON.parse(raw) : null;
   } catch (e) { APP.motivation = null; }
   if (!APP.motivation || typeof APP.motivation !== 'object') APP.motivation = {};
@@ -977,7 +978,7 @@ function getMotivation() {
 
 function saveMotivation() {
   try {
-    localStorage.setItem(MOTIVATION_KEY, JSON.stringify(APP.motivation));
+    LS.setItem(MOTIVATION_KEY, JSON.stringify(APP.motivation));
   } catch (e) { /* storage unavailable — fail silently */ }
 }
 
@@ -1685,7 +1686,7 @@ function renderMapScreen() {
   const prog = getInstrumentProgress(APP.instrumentId);
   const fsContent = FIRST_SOUND_CONTENT[inst.family] || FIRST_SOUND_CONTENT.strings;
   const fsSeen = getFirstSoundSeen(APP.instrumentId);
-  const allImported = JSON.parse(localStorage.getItem(IMPORTED_SONGS_KEY) || '{}');
+  const allImported = JSON.parse(LS.getItem(IMPORTED_SONGS_KEY) || '{}');
   const instImported = (allImported[APP.instrumentId] || []).filter(s => s && s.noteIds);
   const total = inst.lessons.length + instImported.length;
   const doneCount = inst.lessons.filter(l => prog.completed[l.id]).length + instImported.filter(s => prog.completed[s.id]).length;
@@ -3506,10 +3507,10 @@ function importSongFromMusicXML(xmlString, instrumentId) {
   if (noteIds.length === 0) throw new Error('No playable notes found in MusicXML');
   const importedId = 'imported-' + Date.now();
   const song = { id: importedId, type: 'song', noteName: title, prerequisiteIds: [], noteIds, durations, prompt: '', description: 'Imported from MusicXML.' };
-  const existing = JSON.parse(localStorage.getItem(IMPORTED_SONGS_KEY) || '{}');
+  const existing = JSON.parse(LS.getItem(IMPORTED_SONGS_KEY) || '{}');
   if (!existing[instId]) existing[instId] = [];
   existing[instId].push(song);
-  localStorage.setItem(IMPORTED_SONGS_KEY, JSON.stringify(existing));
+  LS.setItem(IMPORTED_SONGS_KEY, JSON.stringify(existing));
   return song;
 }
 
@@ -4174,7 +4175,7 @@ function handleAction(action, el) {
       stopAudioPlayback();
       startSession();
       const idx = parseInt(el.dataset.importedIndex, 10);
-      const allImported = JSON.parse(localStorage.getItem(IMPORTED_SONGS_KEY) || '{}');
+      const allImported = JSON.parse(LS.getItem(IMPORTED_SONGS_KEY) || '{}');
       const songs = allImported[APP.instrumentId] || [];
       const song = songs[idx];
       if (!song) { showToast('Song not found.'); break; }
@@ -4189,12 +4190,12 @@ function handleAction(action, el) {
     }
     case 'delete-imported-song': {
       const idx = parseInt(el.dataset.importedIndex, 10);
-      const allImported = JSON.parse(localStorage.getItem(IMPORTED_SONGS_KEY) || '{}');
+      const allImported = JSON.parse(LS.getItem(IMPORTED_SONGS_KEY) || '{}');
       const songs = allImported[APP.instrumentId] || [];
       const removed = songs[idx];
       songs.splice(idx, 1);
       allImported[APP.instrumentId] = songs;
-      localStorage.setItem(IMPORTED_SONGS_KEY, JSON.stringify(allImported));
+      LS.setItem(IMPORTED_SONGS_KEY, JSON.stringify(allImported));
       // Drop any saved progress for the deleted song so it doesn't linger in
       // localStorage (or inflate completion counts if the id is ever reused).
       if (removed) {
