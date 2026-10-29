@@ -3554,7 +3554,7 @@ function handleAction(action, el) {
     }
 
     case 'reset-progress': {
-      if (!confirm('Reset all progress for all instruments? This cannot be undone.')) return;
+      if (!confirm(tx('Reset all progress for all instruments? This cannot be undone.'))) return;
       APP.progress = {};
       APP.motivation = { days: {}, badges: {} };
       saveProgress();

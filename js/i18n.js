@@ -81,6 +81,15 @@ function t(str) {
   return str;
 }
 
+function tx(str) {
+  if (typeof str !== 'string' || LANG === 'en') return str;
+  const trimmed = str.trim();
+  if (!trimmed) return str;
+  const dict = TRANSLATIONS[LANG] || {};
+  if (dict[trimmed]) return str.replace(trimmed, dict[trimmed]);
+  return str;
+}
+
 // Translate a template and then fill in its {placeholders}. Translations come
 // first so a translated template can reorder the placeholders the way the
 // language wants them.
