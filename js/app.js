@@ -4008,6 +4008,7 @@ function handleAction(action, el) {
       break;
 
     case 'hear-note': {
+      AudioEngine.unlock();
       const inst = getInstrument(APP.instrumentId);
       const lesson = getLesson(APP.instrumentId, APP.lessonIndex);
       if (isSongLesson(lesson)) {

@@ -10,7 +10,9 @@ const AudioEngine = (() => {
     if (!ctx) {
       ctx = new (window.AudioContext || window.webkitAudioContext)();
     }
-    if (ctx.state === 'suspended') ctx.resume();
+    if (ctx.state === 'suspended') {
+      try { ctx.resume(); } catch (e) {}
+    }
     return ctx;
   }
 
