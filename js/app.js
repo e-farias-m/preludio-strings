@@ -4392,3 +4392,9 @@ if ('serviceWorker' in navigator) {
     });
   }).catch(() => {});
 }
+
+// Save session on page hide (iPadOS doesn't reliably fire beforeunload)
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+  window.addEventListener('pagehide', () => { if (typeof endSession === 'function') endSession(); });
+  if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && typeof endSession === 'function') endSession(); });
+}
