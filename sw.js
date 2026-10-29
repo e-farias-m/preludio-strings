@@ -1,4 +1,4 @@
-const CACHE = 'preludio-strings-v6';
+const CACHE = 'preludio-strings-v7';
 // Relative to the service worker's own folder, so the app works from a
 // project page (user.github.io/repo/) as well as from a domain root.
 const FILES = [
@@ -6,6 +6,9 @@ const FILES = [
   './index.html',
   './manifest.json',
   './icon.svg',
+  './icon-180.png',
+  './icon-192.png',
+  './icon-512.png',
   './css/styles.css',
   './js/app.js',
   './js/audio.js',
