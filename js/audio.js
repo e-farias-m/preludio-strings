@@ -10,11 +10,27 @@ const AudioEngine = (() => {
     if (!ctx) {
       ctx = new (window.AudioContext || window.webkitAudioContext)();
     }
-    if (ctx.state === 'suspended' || ctx.state === 'interrupted') {
-      try { ctx.resume(); } catch (e) {}
-    }
     return ctx;
   }
+
+  let runningPromise = null;
+
+  function ensureRunning() {
+    const c = getCtx();
+    if (c.state === 'running') return Promise.resolve(c);
+    if (!runningPromise) {
+      try {
+        runningPromise = c.resume()
+          .then(() => c)
+          .catch(() => c)
+          .finally(() => { runningPromise = null; });
+      } catch (e) {
+        return Promise.resolve(c);
+      }
+    }
+    return runningPromise;
+  }
+
 
   // ── ENVELOPE HELPER ─────────────────────────────────────────────────────
   function applyEnvelope(gainNode, t0, attack, decay, sustainLevel, releaseStart, release, peak = 0.9) {
@@ -127,31 +143,33 @@ const AudioEngine = (() => {
   // `opts.sound` picks the timbre ('click' | 'wood' | 'beep') and `opts.volume`
   // scales the level (0…1). Both default so existing callers are unaffected.
   function playClick(accent = false, when = 0, opts = {}) {
-    const c = getCtx();
-    const t0 = c.currentTime + when + 0.01;
-    const volume = typeof opts.volume === 'number' ? Math.max(0, Math.min(1, opts.volume)) : 1;
-    const sound = opts.sound || 'click';
-    const osc = c.createOscillator();
-    let peak;
-    if (sound === 'wood') {
-      osc.type = 'triangle';
-      osc.frequency.value = accent ? 1000 : 680;
-      peak = accent ? 0.22 : 0.14;
-    } else if (sound === 'beep') {
-      osc.type = 'sine';
-      osc.frequency.value = accent ? 1320 : 880;
-      peak = accent ? 0.16 : 0.1;
-    } else {
-      osc.type = 'square';
-      osc.frequency.value = accent ? 1400 : 900;
-      peak = accent ? 0.18 : 0.11;
-    }
-    const g = c.createGain();
-    g.gain.setValueAtTime(Math.max(0.0001, peak * volume), t0);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.06);
-    osc.connect(g).connect(c.destination);
-    osc.start(t0);
-    osc.stop(t0 + 0.08);
+    ensureRunning().then(() => {
+      const c = getCtx();
+      const t0 = c.currentTime + when + 0.01;
+      const volume = typeof opts.volume === 'number' ? Math.max(0, Math.min(1, opts.volume)) : 1;
+      const sound = opts.sound || 'click';
+      const osc = c.createOscillator();
+      let peak;
+      if (sound === 'wood') {
+        osc.type = 'triangle';
+        osc.frequency.value = accent ? 1000 : 680;
+        peak = accent ? 0.22 : 0.14;
+      } else if (sound === 'beep') {
+        osc.type = 'sine';
+        osc.frequency.value = accent ? 1320 : 880;
+        peak = accent ? 0.16 : 0.1;
+      } else {
+        osc.type = 'square';
+        osc.frequency.value = accent ? 1400 : 900;
+        peak = accent ? 0.18 : 0.11;
+      }
+      const g = c.createGain();
+      g.gain.setValueAtTime(Math.max(0.0001, peak * volume), t0);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.06);
+      osc.connect(g).connect(c.destination);
+      osc.start(t0);
+      osc.stop(t0 + 0.08);
+    });
   }
 
   // ── PUBLIC: play a note on one of the string instruments ────────────────
@@ -159,48 +177,38 @@ const AudioEngine = (() => {
   // always the bowed string one. `voice` names which of the three it is —
   // violin, viola or cello each have their own body.
   function playInstrumentNote(freq, fingeringType, duration = 1.1, voice = null) {
-    const c = getCtx();
-    if (c.state === 'suspended' || c.state === 'interrupted') {
-      try { c.resume(); } catch (e) {}
-    } // ensure unlocked on this gesture
-    playBowedString(freq, duration, voice || 'violin');
+    ensureRunning().then(() => {
+      const c = getCtx();
+      if (c.state === 'suspended' || c.state === 'interrupted') {
+        try { c.resume(); } catch (e) {}
+      }
+      playBowedString(freq, duration, voice || 'violin');
+    });
   }
 
   // ── CHORD ──────────────────────────────────────────────────────────────
   function playChord(freqs, fingeringType, duration = 1.1, voice = null) {
-    if (!freqs || freqs.length === 0) return;
-    freqs.forEach(freq => {
-      if (freq == null) return;
-      playInstrumentNote(freq, fingeringType, duration, voice);
+    ensureRunning().then(() => {
+      if (!freqs || freqs.length === 0) return;
+      freqs.forEach(freq => {
+        if (freq == null) return;
+        playInstrumentNote(freq, fingeringType, duration, voice);
+      });
     });
   }
 
   function unlock() {
-    if (!ctx) {
-      try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
-    }
-    const c = ctx;
-    try {
-      const p = c.resume();
-      if (p && typeof p.then === 'function') { p.then(() => {}).catch(() => {}); }
-    } catch (e) {}
-    try {
-      const buffer = c.createBuffer(1, c.sampleRate * 0.1, c.sampleRate);
-      const source = c.createBufferSource();
-      source.buffer = buffer;
-      source.connect(c.destination);
-      source.start(0);
-      source.stop(c.currentTime + 0.1);
-    } catch (e) {}
-    try {
-      const osc = c.createOscillator();
-      const gain = c.createGain();
-      gain.gain.value = 0;
-      osc.connect(gain);
-      gain.connect(c.destination);
-      osc.start(0);
-      osc.stop(c.currentTime + 0.1);
-    } catch (e) {}
+    return ensureRunning().then((c) => {
+      try {
+        const buffer = c.createBuffer(1, Math.floor(c.sampleRate * 0.05), c.sampleRate);
+        const source = c.createBufferSource();
+        source.buffer = buffer;
+        source.connect(c.destination);
+        source.start(0);
+        source.stop(c.currentTime + 0.05);
+      } catch (e) {}
+      return c;
+    });
   }
 
   return { playInstrumentNote, playChord, playClick, unlock };
