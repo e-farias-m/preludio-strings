@@ -1567,10 +1567,10 @@ function renderSelectScreen() {
     headline = t('First notes, first wins.');
     sub = t('Pick an instrument to start your very first lessons — fingerings, notes, and your first sounds.');
     instrumentArea = `
-      ${savedInst ? `<button class="picker-back" data-action="cancel-instrument-pick">\u2190 Back to ${savedInst.shortName}</button>` : ''}
+      ${savedInst ? `<button class="picker-back" data-action="cancel-instrument-pick">\u2190 ${t('Back to')} ${t(savedInst.shortName)}</button>` : ''}
       ${renderInstrumentGrid()}`;
   } else {
-    headline = studentName ? `Ready, ${escapeHtml(studentName)}?` : 'Ready to play?';
+    headline = studentName ? tFill('Ready, {name}?', { name: escapeHtml(studentName) }) : t('Ready to play?');
     sub = tFill("You're set up on {inst}. Pick up where you left off.", { inst: t(savedInst.shortName) });
     instrumentArea = renderFocusCard(savedInst);
   }
@@ -1591,8 +1591,8 @@ function renderSelectScreen() {
       </div>
       <div class="select-hero-settings">
         <button class="theme-toggle" data-action="toggle-language" title="${t('Language')}">${getLang() === 'pt' ? 'PT' : getLang() === 'fr' ? 'FR' : 'EN'}</button>
-        <button class="theme-toggle" data-action="toggle-theme" title="Switch to ${getTheme() === 'light' ? 'dark' : 'light'} theme">${getTheme() === 'light' ? '\u{1F319}' : '\u2600\uFE0F'}</button>
-        <button class="theme-toggle settings-gear" data-action="open-settings" title="Settings">\u{2699}\u{FE0F}</button>
+        <button class="theme-toggle" data-action="toggle-theme" title="${t('Switch to ' + (getTheme() === 'light' ? 'dark' : 'light') + ' theme')}">${getTheme() === 'light' ? '\u{1F319}' : '\u2600\uFE0F'}</button>
+        <button class="theme-toggle settings-gear" data-action="open-settings" title="${t('Settings')}">\u{2699}\u{FE0F}</button>
       </div>
       ${motivationHtml}
       ${digestHtml}
@@ -1658,7 +1658,7 @@ function buildTutorialSlides(inst) {
     {
       icon: '🗺️',
       title: 'Follow your lesson path',
-      body: `Every note and song is a stop on your ${inst.shortName} map. Finish one step to unlock the next — a 🔒 just means the step before it is still waiting.`,
+      body: `${t('Every note and song is a stop on your')} ${t(inst.shortName)} ${t('map. Finish one step to unlock the next — a 🔒 just means the step before it is still waiting.')}`,
     },
     {
       icon: '👀',
@@ -1720,15 +1720,15 @@ function renderPlanCard(instrumentId) {
   const done = plan.items.filter(i => i.done).length;
   const total = plan.items.length;
   const rows = plan.items.map(it => {
-    let label = t('Practise');
+    let label = t('Practice');
     if (it.type === 'note') {
       const n = findLessonById(instrumentId, it.targetId);
-      label = 'Review ' + (n ? noteDisplayName(t(n.noteName)) : 'note');
+      label = t('Review') + ' ' + (n ? noteDisplayName(t(n.noteName)) : t('note'));
     } else if (it.type === 'song') {
       const s = findLessonById(instrumentId, it.targetId);
-      label = 'Play ' + (s ? noteDisplayName(t(s.noteName)) : 'song');
+      label = t('Play') + ' ' + (s ? noteDisplayName(t(s.noteName)) : t('song'));
     } else if (it.type === 'sprint') {
-      label = (it.mode === SPRINT_MODES.FINGER ? 'Finger gym' : 'Sight-reading') + ' sprint';
+      label = (it.mode === SPRINT_MODES.FINGER ? t('Finger gym') : t('Sight-reading')) + ' ' + t('sprint');
     }
     const icon = it.type === 'sprint' ? '\u{26A1}' : '\u{1F3B5}';
     return `
@@ -1736,22 +1736,22 @@ function renderPlanCard(instrumentId) {
         <div class="plan-item-icon">${it.done ? '\u2713' : icon}</div>
         <div class="plan-item-text">
           <div class="plan-item-name">${escapeHtml(label)}</div>
-          <div class="plan-item-reason">${escapeHtml(it.reason || '')}</div>
+          <div class="plan-item-reason">${escapeHtml(t(it.reason || ''))}</div>
         </div>
         ${it.done
-          ? '<div class="plan-item-tag">Done</div>'
-          : `<button class="btn btn-secondary plan-item-btn" data-action="plan-start" data-item="${it.id}">Start</button>`}
+          ? `<div class="plan-item-tag">${t('Done')}</div>`
+          : `<button class="btn btn-secondary plan-item-btn" data-action="plan-start" data-item="${it.id}">${t('Start')}</button>`}
       </div>`;
   }).join('');
   const allDone = done === total;
   return `
     <div class="plan-card ${allDone ? 'plan-card-done' : ''}">
       <div class="plan-header">
-        <div class="plan-title">Today\u2019s Plan</div>
+        <div class="plan-title">${t("Today's Plan")}</div>
         <div class="plan-count">${done}/${total}</div>
       </div>
       <div class="plan-items">${rows}</div>
-      ${allDone ? '<div class="plan-done-note">\u{1F389} All done — nice work!</div>' : ''}
+      ${allDone ? `<div class="plan-done-note">\u{1F389} ${t('All done — nice work!')}</div>` : ''}
     </div>`;
 }
 

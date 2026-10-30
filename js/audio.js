@@ -5,30 +5,50 @@
 
 const AudioEngine = (() => {
   let ctx = null;
+  let silentSource = null;
+
+  // iOS 17+: move Web Audio to the media playback channel so the hardware
+  // silent switch does not mute it. Must be set synchronously inside a user
+  // gesture.
+  function setAudioSession() {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.audioSession && typeof navigator.audioSession.type !== 'undefined') {
+        navigator.audioSession.type = 'playback';
+      }
+    } catch (e) {}
+  }
 
   function getCtx() {
     if (!ctx) {
+      setAudioSession();
       ctx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (ctx.state === 'suspended' || ctx.state === 'interrupted') {
+      try { ctx.resume(); } catch (e) {}
     }
     return ctx;
   }
 
-  let runningPromise = null;
-
-  function ensureRunning() {
+  // Keep a looping near-silent buffer running while the app is active. This is
+  // the legacy iOS unlock technique (still needed on older Safari) and also
+  // prevents the audio session from dropping between notes. The buffer contains
+  // one non-zero sample so WebKit does not optimise the source away.
+  function startSilentBuffer() {
     const c = getCtx();
-    if (c.state === 'running') return Promise.resolve(c);
-    if (!runningPromise) {
-      try {
-        runningPromise = c.resume()
-          .then(() => c)
-          .catch(() => c)
-          .finally(() => { runningPromise = null; });
-      } catch (e) {
-        return Promise.resolve(c);
-      }
-    }
-    return runningPromise;
+    try {
+      if (silentSource) { try { silentSource.stop(); } catch (e) {} silentSource = null; }
+      const frames = Math.floor(c.sampleRate * 0.05);
+      const buffer = c.createBuffer(1, frames, c.sampleRate);
+      const data = buffer.getChannelData(0);
+      // One tiny non-zero sample is enough to keep the node alive on iOS.
+      if (data.length) data[0] = 0.0001;
+      const source = c.createBufferSource();
+      source.buffer = buffer;
+      source.loop = true;
+      source.connect(c.destination);
+      source.start(0);
+      silentSource = source;
+    } catch (e) {}
   }
 
 
@@ -143,33 +163,31 @@ const AudioEngine = (() => {
   // `opts.sound` picks the timbre ('click' | 'wood' | 'beep') and `opts.volume`
   // scales the level (0…1). Both default so existing callers are unaffected.
   function playClick(accent = false, when = 0, opts = {}) {
-    ensureRunning().then(() => {
-      const c = getCtx();
-      const t0 = c.currentTime + when + 0.01;
-      const volume = typeof opts.volume === 'number' ? Math.max(0, Math.min(1, opts.volume)) : 1;
-      const sound = opts.sound || 'click';
-      const osc = c.createOscillator();
-      let peak;
-      if (sound === 'wood') {
-        osc.type = 'triangle';
-        osc.frequency.value = accent ? 1000 : 680;
-        peak = accent ? 0.22 : 0.14;
-      } else if (sound === 'beep') {
-        osc.type = 'sine';
-        osc.frequency.value = accent ? 1320 : 880;
-        peak = accent ? 0.16 : 0.1;
-      } else {
-        osc.type = 'square';
-        osc.frequency.value = accent ? 1400 : 900;
-        peak = accent ? 0.18 : 0.11;
-      }
-      const g = c.createGain();
-      g.gain.setValueAtTime(Math.max(0.0001, peak * volume), t0);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.06);
-      osc.connect(g).connect(c.destination);
-      osc.start(t0);
-      osc.stop(t0 + 0.08);
-    });
+    const c = getCtx();
+    const t0 = c.currentTime + when + 0.01;
+    const volume = typeof opts.volume === 'number' ? Math.max(0, Math.min(1, opts.volume)) : 1;
+    const sound = opts.sound || 'click';
+    const osc = c.createOscillator();
+    let peak;
+    if (sound === 'wood') {
+      osc.type = 'triangle';
+      osc.frequency.value = accent ? 1000 : 680;
+      peak = accent ? 0.22 : 0.14;
+    } else if (sound === 'beep') {
+      osc.type = 'sine';
+      osc.frequency.value = accent ? 1320 : 880;
+      peak = accent ? 0.16 : 0.1;
+    } else {
+      osc.type = 'square';
+      osc.frequency.value = accent ? 1400 : 900;
+      peak = accent ? 0.18 : 0.11;
+    }
+    const g = c.createGain();
+    g.gain.setValueAtTime(Math.max(0.0001, peak * volume), t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.06);
+    osc.connect(g).connect(c.destination);
+    osc.start(t0);
+    osc.stop(t0 + 0.08);
   }
 
   // ── PUBLIC: play a note on one of the string instruments ────────────────
@@ -177,38 +195,36 @@ const AudioEngine = (() => {
   // always the bowed string one. `voice` names which of the three it is —
   // violin, viola or cello each have their own body.
   function playInstrumentNote(freq, fingeringType, duration = 1.1, voice = null) {
-    ensureRunning().then(() => {
-      const c = getCtx();
-      if (c.state === 'suspended' || c.state === 'interrupted') {
-        try { c.resume(); } catch (e) {}
-      }
-      playBowedString(freq, duration, voice || 'violin');
-    });
+    const c = getCtx();
+    playBowedString(freq, duration, voice || 'violin');
   }
 
   // ── CHORD ──────────────────────────────────────────────────────────────
   function playChord(freqs, fingeringType, duration = 1.1, voice = null) {
-    ensureRunning().then(() => {
-      if (!freqs || freqs.length === 0) return;
-      freqs.forEach(freq => {
-        if (freq == null) return;
-        playInstrumentNote(freq, fingeringType, duration, voice);
-      });
+    if (!freqs || freqs.length === 0) return;
+    const c = getCtx();
+    freqs.forEach(freq => {
+      if (freq == null) return;
+      playBowedString(freq, duration, voice || 'violin');
     });
   }
 
+  // iOS unlock: move Web Audio to the media-playback channel and keep a
+  // looping silent node alive. The <audio> fallback is needed on older iOS
+  // where navigator.audioSession is not supported; playing any audio element
+  // inside a user gesture promotes the page out of the ringer/silent channel.
   function unlock() {
-    return ensureRunning().then((c) => {
-      try {
-        const buffer = c.createBuffer(1, Math.floor(c.sampleRate * 0.05), c.sampleRate);
-        const source = c.createBufferSource();
-        source.buffer = buffer;
-        source.connect(c.destination);
-        source.start(0);
-        source.stop(c.currentTime + 0.05);
-      } catch (e) {}
-      return c;
-    });
+    setAudioSession();
+    try {
+      if (!window.__preludioAudioUnlock) {
+        const a = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAAAA==');
+        a.volume = 0.001;
+        a.play().catch(() => {});
+        window.__preludioAudioUnlock = a;
+      }
+    } catch (e) {}
+    getCtx();
+    startSilentBuffer();
   }
 
   return { playInstrumentNote, playChord, playClick, unlock };
