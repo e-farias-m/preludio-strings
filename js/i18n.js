@@ -686,7 +686,7 @@ TRANSLATIONS.pt = {
   "Update available — reload to get the latest version.": "Atualização disponível — recarregue para obter a versão mais recente.",
 
   "Listen to how it sounds...": "Ouça como soa...",
-  "Today's Plan": "Plano de Hoje",
+  "Today's Plan": "O plano de hoje",
   "All done — nice work!": "Tudo pronto — bom trabalho!",
   "sprint": "sprint",
   "note": "nota",
