@@ -2609,3 +2609,20 @@ button:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2
 .game-over-pct { font-size: 18px; color: var(--text-muted); margin-bottom: 16px; }
 .game-launch-btn { margin-top: 12px; }
 .map-ref-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 2px; vertical-align: middle; }
+
+/* ── ANALYTICS SCREEN ─────────────────────────────────────────────────────── */
+.analytics-screen { padding: 16px; }
+.analytics-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.analytics-header h2 { margin: 0; }
+.analytics-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.analytics-card { background: var(--card-bg, #f5f5f5); border-radius: 12px; padding: 12px; text-align: center; }
+.card-stat { display: block; font-size: 24px; font-weight: 700; }
+.card-label { display: block; font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.analytics-section { margin-bottom: 16px; }
+.analytics-section-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+.stats-list, .events-list { display: flex; flex-direction: column; gap: 6px; }
+.stat-row, .event-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: var(--card-bg, #f5f5f5); border-radius: 8px; font-size: 13px; }
+.event-type { font-weight: 600; }
+.event-xp { color: var(--accent-warm); font-weight: 600; }
+.event-date { color: var(--text-muted); font-size: 11px; }
+.btn-danger { background: var(--text-danger, #d33); color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; }
