@@ -159,7 +159,10 @@ const AudioEngine = (() => {
   // always the bowed string one. `voice` names which of the three it is —
   // violin, viola or cello each have their own body.
   function playInstrumentNote(freq, fingeringType, duration = 1.1, voice = null) {
-    getCtx(); // ensure unlocked on this gesture
+    const c = getCtx();
+    if (c.state === 'suspended' || c.state === 'interrupted') {
+      try { c.resume(); } catch (e) {}
+    } // ensure unlocked on this gesture
     playBowedString(freq, duration, voice || 'violin');
   }
 
