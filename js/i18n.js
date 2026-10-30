@@ -135,19 +135,19 @@ function applyI18nToDOM() {
 // or with a name that has to be translated too ("Fingering chart · Violino").
 // Those are matched by pattern instead of by exact text.
 var PT_PATTERNS = [
-  [/^(\d+) (mastered|practiced|learning)$/, (m, n, word) =>
+  [/(\d+) (mastered|practiced|learning)$/, (m, n, word) =>
     n + ' ' + ({ mastered: 'dominadas', practiced: 'praticadas', learning: 'em aprendizado' }[word] || word)],
-  [/^(\d+) of (\d+) notes learned$/, (m, a, b) => a + ' de ' + b + ' notas aprendidas'],
-  [/^(\d+)\/(\d+) notes · (\d+)\/(\d+) songs$/, (m, a, b, c, d) =>
+  [/(\d+) of (\d+) notes learned$/, (m, a, b) => a + ' de ' + b + ' notas aprendidas'],
+  [/(\d+)\/(\d+) notes · (\d+)\/(\d+) songs$/, (m, a, b, c, d) =>
     a + '/' + b + ' notas · ' + c + '/' + d + ' músicas'],
-  [/^(\d+) min to reach your (\d+)-minute goal$/, (m, a, b) =>
+  [/(\d+) min to reach your (\d+)-minute goal$/, (m, a, b) =>
     'Faltam ' + a + ' min para alcançar a sua meta de ' + b + ' min'],
   [/^Badges · (\d+)\/(\d+)$/, (m, a, b) => 'Insígnias · ' + a + '/' + b],
   [/^Lv (\d+)$/, (m, n) => 'Nível ' + n],
   [/^Note (\d+) of (\d+)$/, (m, a, b) => 'Nota ' + a + ' de ' + b],
   [/^Question (\d+) of (\d+)$/, (m, a, b) => 'Pergunta ' + a + ' de ' + b],
   [/^✓ Goal met — (\d+) of (\d+) min!$/, (m, a, b) => '✓ Meta cumprida — ' + a + ' de ' + b + ' min!'],
-  [/^(\d+)\/(\d+) correct( — golden ear!)?$/, (m, a, b, golden) =>
+  [/(\d+)\/(\d+) correct( — golden ear!)?$/, (m, a, b, golden) =>
     a + '/' + b + ' corretas' + (golden ? ' — ouvido de ouro!' : '')],
   [/^Fingering chart · (.+)$/, (m, inst) => 'Tabela de digitações · ' + t(inst)],
   [/^First sound · (.+)$/, (m, inst) => 'Primeiro som · ' + t(inst)],
@@ -166,14 +166,77 @@ var PT_PATTERNS = [
     'Soa como concerts ' + note + ' (instrumento em ' + t(key) + ').'],
 ];
 
+var FR_PATTERNS = [
+  [/(\d+) (mastered|practiced|learning)$/, (m, n, word) =>
+    n + ' ' + ({ mastered: 'maîtrisées', practiced: 'pratiquées', learning: 'en apprentissage' }[word] || word)],
+  [/(\d+) of (\d+) notes learned$/, (m, a, b) => a + ' sur ' + b + ' notes apprises'],
+  [/(\d+)\/(\d+) notes · (\d+)\/(\d+) songs$/, (m, a, b, c, d) =>
+    a + '/' + b + ' notes · ' + c + '/' + d + ' chansons'],
+  [/(\d+) min to reach your (\d+)-minute goal$/, (m, a, b) =>
+    'Il manque ' + a + ' min pour atteindre votre objectif de ' + b + ' min'],
+  [/^Badges · (\d+)\/(\d+)$/, (m, a, b) => 'Badges · ' + a + '/' + b],
+  [/^Lv (\d+)$/, (m, n) => 'Niv ' + n],
+  [/^Note (\d+) of (\d+)$/, (m, a, b) => 'Note ' + a + ' sur ' + b],
+  [/^Question (\d+) of (\d+)$/, (m, a, b) => 'Question ' + a + ' sur ' + b],
+  [/^✓ Goal met — (\d+) of (\d+) min!$/, (m, a, b) => '✓ Objectif atteint — ' + a + ' sur ' + b + ' min!'],
+  [/(\d+)\/(\d+) correct( — golden ear!)?$/, (m, a, b, golden) =>
+    a + '/' + b + ' correctes' + (golden ? " — oreille d'or!" : '')],
+  [/^Fingering chart · (.+)$/, (m, inst) => 'Doigtés · ' + t(inst)],
+  [/^First sound · (.+)$/, (m, inst) => 'Premier son · ' + t(inst)],
+  [/^Practice · (.+)$/, (m, inst) => 'Pratique · ' + t(inst)],
+  [/^Switch to (dark|light) theme$/, (m, mode) =>
+    'Passer au thème ' + (mode === 'dark' ? 'sombre' : 'clair')],
+  [/^← Back to (.+)$/, (m, inst) => '← Retour à ' + t(inst)],
+  [/^Review (.+)$/, (m, what) => 'Révision ' + what],
+  [/^Play (.+)$/, (m, what) => 'Jouer ' + t(what)],
+  [/^Finger gym sprint$/, () => 'Sprint gymnastique des doigts'],
+  [/^Sight-reading sprint$/, () => 'Sprint de lecture à vue'],
+  [/^Ready, (.+)\?$/, (m, name) => 'Prêt, ' + name + '?'],
+  [/^Best: (\d+) names · (\d+) fingerings$/, (m, a, b) =>
+    'Meilleur: ' + a + ' noms · ' + b + ' doigtés'],
+  [/^Sounds as concert (.+) \((.+) instrument\)\.$/, (m, note, key) =>
+    'Sonne comme un ' + note + ' de concert (instrument en ' + t(key) + ').'],
+];
+var FR_PATTERNS = [
+  [/(\d+) (mastered|practiced|learning)$/, (m, n, word) =>
+    n + ' ' + ({ mastered: 'maîtrisées', practiced: 'pratiquées', learning: 'en apprentissage' }[word] || word)],
+  [/(\d+) of (\d+) notes learned$/, (m, a, b) => a + ' sur ' + b + ' notes apprises'],
+  [/(\d+)\/(\d+) notes · (\d+)\/(\d+) songs$/, (m, a, b, c, d) =>
+    a + '/' + b + ' notes · ' + c + '/' + d + ' chansons'],
+  [/(\d+) min to reach your (\d+)-minute goal$/, (m, a, b) =>
+    'Il manque ' + a + ' min pour atteindre votre objectif de ' + b + ' min'],
+  [/^Badges · (\d+)\/(\d+)$/, (m, a, b) => 'Badges · ' + a + '/' + b],
+  [/^Lv (\d+)$/, (m, n) => 'Niv ' + n],
+  [/^Note (\d+) of (\d+)$/, (m, a, b) => 'Note ' + a + ' sur ' + b],
+  [/^Question (\d+) of (\d+)$/, (m, a, b) => 'Question ' + a + ' sur ' + b],
+  [/^✓ Goal met — (\d+) of (\d+) min!$/, (m, a, b) => '✓ Objectif atteint — ' + a + ' sur ' + b + ' min!'],
+  [/(\d+)\/(\d+) correct( — golden ear!)?$/, (m, a, b, golden) =>
+    a + '/' + b + ' correctes' + (golden ? " — oreille d'or!" : '')],
+  [/^Fingering chart · (.+)$/, (m, inst) => 'Doigtés · ' + t(inst)],
+  [/^First sound · (.+)$/, (m, inst) => 'Premier son · ' + t(inst)],
+  [/^Practice · (.+)$/, (m, inst) => 'Pratique · ' + t(inst)],
+  [/^Switch to (dark|light) theme$/, (m, mode) =>
+    'Passer au thème ' + (mode === 'dark' ? 'sombre' : 'clair')],
+  [/^← Back to (.+)$/, (m, inst) => '← Retour à ' + t(inst)],
+  [/^Review (.+)$/, (m, what) => 'Révision ' + what],
+  [/^Play (.+)$/, (m, what) => 'Jouer ' + t(what)],
+  [/^Finger gym sprint$/, () => 'Sprint gymnastique des doigts'],
+  [/^Sight-reading sprint$/, () => 'Sprint de lecture à vue'],
+  [/^Ready, (.+)\?$/, (m, name) => 'Prêt, ' + name + '?'],
+  [/^Best: (\d+) names · (\d+) fingerings$/, (m, a, b) =>
+    'Meilleur: ' + a + ' noms · ' + b + ' doigtés'],
+  [/^Sounds as concert (.+) \((.+) instrument\)\.$/, (m, note, key) =>
+    'Sonne comme un ' + note + ' de concert (instrument en ' + t(key) + ').'],
+];
+
 // Translate the visible text of a rendered screen. The markup is already
 // built at this point, so the text nodes are complete strings: each one is
 // looked up whole, which leaves numbers, note names and the student's own
 // words alone. A handful of labels mix words with live numbers ("Note 3 of
 // 8"); those are matched by pattern instead.
 function translateHtml(html) {
-  if (LANG !== 'pt' || typeof html !== 'string' || !html) return html;
-  const table = TRANSLATIONS.pt;
+  if ((LANG !== 'pt' && LANG !== 'fr') || typeof html !== 'string' || !html) return html;
+  const table = TRANSLATIONS[LANG];
   if (!table) return html;
   const has = k => Object.prototype.hasOwnProperty.call(table, k);
 
@@ -185,9 +248,10 @@ function translateHtml(html) {
     // Solfege conversion for note names
     const sol = noteToSolfeggio(trimmed);
     if (sol !== trimmed) return text.replace(trimmed, sol);
-    for (let i = 0; i < PT_PATTERNS.length; i++) {
-      const re = PT_PATTERNS[i][0];
-      const make = PT_PATTERNS[i][1];
+    const patterns = LANG === 'fr' ? FR_PATTERNS : PT_PATTERNS;
+    for (let i = 0; i < patterns.length; i++) {
+      const re = patterns[i][0];
+      const make = patterns[i][1];
       const hit = re.exec(trimmed);
       if (hit) return text.replace(trimmed, make(hit));
     }
@@ -620,7 +684,8 @@ TRANSLATIONS.pt = {
   "📈 Your week in music is ready!": "📈 A sua semana de música está pronta!",
   "📋 Progress report": "📋 Relatório de progresso",
   "Update available — reload to get the latest version.": "Atualização disponível — recarregue para obter a versão mais recente.",
-};
+
+  "Listen to how it sounds...": "Ouça como soa...",};
 
 // French (Canadian French) translations - starter set
 TRANSLATIONS.fr = {
@@ -762,4 +827,15 @@ TRANSLATIONS.fr = {
   "Reset": "Réinitialiser",
   "Welcome to Preludio Strings!": "Bienvenue au Preludio Strings !",
   "Update available — reload to get the latest version.": "Mise à jour disponible — rechargez pour obtenir la dernière version.",
-};
+
+  "Preparing…": "Préparation…",
+  "Count-in…": "Compte…",
+  "Playing…": "Lecture…",
+  "Audio failed to load.": "Échec du chargement audio.",
+  "Retry": "Réessayer",
+  "Song complete!": "Morceau terminé!",
+  "Play now!": "Jouez maintenant!",
+  "Nice. Tap Start to try again, or confirm below.": "Bien. Appuyez sur Démarrer pour réessayer, ou confirmez ci-dessous.",
+  "▶ Replay count-in": "▶ Rejouer le compte",
+  "Listening…": "Écoute…",
+  "in tune ✓": "juste ✓",};

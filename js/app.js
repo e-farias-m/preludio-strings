@@ -1610,7 +1610,7 @@ function renderSettingsScreen() {
     <div class="screen active settings-screen">
       <div class="settings-header">
         <button class="btn-icon" data-action="close-settings" style="background:none;border:none;cursor:pointer;font-size:24px;">←</button>
-        <h2>Settings</h2>
+        <h2>${t('Settings')}</h2>
       </div>
       <div class="settings-body">
         <div class="settings-section">
@@ -2070,7 +2070,7 @@ function renderPracticeTools() {
     <div class="tools-grid">
       <button class="tool-card" data-action="tools-tab" data-tab="metronome">
         <div class="tool-icon">\u{1F3B5}</div>
-        <div class="tool-name">Metronome / Tuner</div>
+        <div class="tool-name">${t('Metronome / Tuner')}</div>
         <div class="tool-sub">Open the floating metronome and tuner.</div>
       </button>
       <button class="tool-card" data-action="tools-tab" data-tab="tuner">
@@ -2192,7 +2192,7 @@ function renderMetronomePanel() {
         <select id="tool-sound" class="tool-select" aria-label="Click sound">${soundOpts}</select>
       </div>
       <div class="tool-row tool-row-between">
-        <button class="tool-pill${m.countIn ? ' active' : ''}" data-action="metronome-countin" role="switch" aria-checked="${m.countIn ? 'true' : 'false'}">Count-in</button>
+        <button class="tool-pill${m.countIn ? ' active' : ''}" data-action="metronome-countin" role="switch" aria-checked="${m.countIn ? 'true' : 'false'}">${t('Count-in')}</button>
         <input type="range" id="metronome-volume" class="tool-volume" min="0" max="100" step="5" value="${vol}" aria-label="Metronome volume" />
       </div>
       <div class="tool-actions">
@@ -2748,12 +2748,12 @@ function startSongAudioPlayback(inst, lesson) {
   const msPerBeat = 60000 / bpm;
 
   playBtn.disabled = true;
-  playBtn.textContent = 'Preparing\u2026';
+  playBtn.textContent = t('Preparing\u2026');
 
   // Clean up any previous playback
   stopAudioPlayback();
 
-  statusEl.textContent = 'Count-in\u2026';
+  statusEl.textContent = t('Count-in\u2026');
 
   // Preload the recording. We only start it once the count-in finishes so the
   // first note sounds at the same moment its highlight appears.
@@ -2780,8 +2780,8 @@ function startSongAudioPlayback(inst, lesson) {
   APP.audioPlaybackInterval = setInterval(tick, msPerBeat);
 
   function startNotes() {
-    statusEl.textContent = 'Playing\u2026';
-    playBtn.textContent = 'Playing\u2026';
+    statusEl.textContent = t('Playing\u2026');
+    playBtn.textContent = t('Playing\u2026');
 
     // Match the recording to the count-in tempo. Pitch is preserved so the
     // tune slows down rather than dropping in key.
@@ -2791,8 +2791,8 @@ function startSongAudioPlayback(inst, lesson) {
     if ('webkitPreservesPitch' in audio) audio.webkitPreservesPitch = true;
 
     audio.play().catch(() => {
-      statusEl.textContent = 'Audio failed to load.';
-      playBtn.textContent = 'Retry';
+      statusEl.textContent = t('Audio failed to load.');
+      playBtn.textContent = t('Retry');
       playBtn.disabled = false;
       APP.audioPlaybackAudio = null;
     });
@@ -2823,8 +2823,8 @@ function startSongAudioPlayback(inst, lesson) {
     }
 
     const done = setTimeout(() => {
-      statusEl.textContent = 'Song complete!';
-      playBtn.textContent = 'Done';
+      statusEl.textContent = t('Song complete!');
+      playBtn.textContent = t('Done');
       playBtn.disabled = false;
       playBtn.dataset.action = 'back-to-present';
     }, totalBeats * msPerBeat);
@@ -3151,7 +3151,7 @@ function renderCompletePhase(inst, lesson) {
       <div class="complete-stars">${starsHtml}</div>
       <div class="complete-xp">+${xp} XP</div>
       <div class="complete-title">${alreadyDone ? 'Review complete!' : 'Lesson complete!'}</div>
-      <div class="complete-sub">${isSong ? 'Song complete!' : messages[masteryLevel]}</div>
+      <div class="complete-sub">${isSong ? t('Song complete!') : messages[masteryLevel]}</div>
       ${masteryBadge}
       <div class="gap-lg"></div>
       ${exportBtn}
@@ -3328,7 +3328,7 @@ function runPlaySequence(inst, lesson) {
 
   function clearActive() { cells.forEach(c => c.classList.remove('active')); }
 
-  status.textContent = 'Get ready...';
+  status.textContent = t('Get ready...');
   [1, 2, 3, 4].forEach((n, i) => {
     const t = setTimeout(() => {
       clearActive();
@@ -3345,15 +3345,15 @@ function runPlaySequence(inst, lesson) {
     const playCell = document.querySelector('.beat-cell[data-beat="play"]');
     if (playCell) playCell.classList.add('active');
     AudioEngine.playInstrumentNote(lesson.freq, inst.fingeringType, 1.3, inst.id);
-    status.textContent = 'Play now!';
+    status.textContent = t('Play now!');
   }, 4 * beatMs);
   APP.playSequenceTimeouts.push(t2);
 
   const t3 = setTimeout(() => {
     clearActive();
-    status.textContent = 'Nice. Tap Start to try again, or confirm below.';
+    status.textContent = t('Nice. Tap Start to try again, or confirm below.');
     btn.disabled = false;
-    btn.textContent = '▶ Replay count-in';
+    btn.textContent = t('▶ Replay count-in');
     APP.play.hasPlayed = true;
     const confirmBtn = document.querySelector('[data-action="play-confirm"]');
     if (confirmBtn) confirmBtn.disabled = false;
@@ -3526,7 +3526,7 @@ function updateTunerReadout() {
   const detected = t.freq > 0 ? freqToNoteInfo(t.freq, APP.instrumentId ? getNoteLessons(APP.instrumentId) : []) : null;
   if (!detected) {
     noteEl.textContent = '—';
-    centsEl.textContent = 'Listening…';
+    centsEl.textContent = t('Listening…');
     needleEl.style.left = '50%';
     return;
   }
