@@ -695,7 +695,11 @@ TRANSLATIONS.pt = {
   "Every note and song is a stop on your": "Cada nota e cada música são uma parada no seu",
   "map. Finish one step to unlock the next — a 🔒 just means the step before it is still waiting.": "mapa. Termine uma etapa para desbloquear a próxima — um 🔒 só significa que a etapa anterior ainda está esperando.",
   "Switch to dark theme": "Mudar para o tema escuro",
-  "Switch to light theme": "Mudar para o tema claro",};
+  "Switch to light theme": "Mudar para o tema claro",
+  "Best: {sight} names · {finger} fingerings": "Melhor: {sight} nomes · {finger} digitações",
+  "Best: {best}": "Melhor: {best}",
+  "New best!": "Novo recorde!",
+  "Best day: {label} · {minutes} min": "Melhor dia: {label} · {minutes} min",};
 
 // French (Canadian French) translations - starter set
 TRANSLATIONS.fr = {
@@ -884,4 +888,9 @@ TRANSLATIONS.fr = {
   "Every note and song is a stop on your": "Chaque note et chaque chanson sont une étape sur votre",
   "map. Finish one step to unlock the next — a 🔒 just means the step before it is still waiting.": "carte. Terminez une étape pour débloquer la suivante — un 🔒 signifie simplement que l'étape précédente attend toujours.",
   "Switch to dark theme": "Passer au thème sombre",
-  "Switch to light theme": "Passer au thème clair",};
+  "Switch to light theme": "Passer au thème clair",
+  "Best: {sight} names · {finger} fingerings": "Meilleur: {sight} noms · {finger} doigtés",
+  "Best: {best}": "Meilleur: {best}",
+  "No score yet": "Pas encore de score",
+  "New best!": "Nouveau record !",
+  "Best day: {label} · {minutes} min": "Meilleur jour: {label} · {minutes} min",};

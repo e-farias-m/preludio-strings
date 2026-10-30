@@ -1770,7 +1770,7 @@ function renderMapScreen() {
   const bestSight = getSprintBest(APP.instrumentId, SPRINT_MODES.SIGHT);
   const bestFinger = getSprintBest(APP.instrumentId, SPRINT_MODES.FINGER);
   const bestLine = practiceReady && (bestSight || bestFinger)
-    ? `<div class="practice-banner-best">Best: ${bestSight} names · ${bestFinger} fingerings</div>`
+    ? `<div class="practice-banner-best">${tFill('Best: {sight} names · {finger} fingerings', { sight: bestSight, finger: bestFinger })}</div>`
     : '';
 
   const nodes = inst.lessons.map((lesson, i) => {
@@ -2038,7 +2038,7 @@ function renderPracticeScreen() {
       <button class="sprint-card" data-action="start-sprint" data-mode="${m.mode}" ${ready ? '' : 'disabled'}>
         <div class="sprint-card-title">${m.title}</div>
         <div class="sprint-card-sub">${m.sub}</div>
-        <div class="sprint-card-best">${best ? `Best: ${best}` : 'No score yet'}</div>
+        <div class="sprint-card-best">${best ? tFill('Best: {best}', { best }) : t('No score yet')}</div>
       </button>`;
   }).join('');
   const earBest = getInstrumentProgress(APP.instrumentId).earBest || 0;
@@ -2057,7 +2057,7 @@ function renderPracticeScreen() {
         <button class="sprint-card ear-entry" data-action="open-ear" ${ready ? '' : 'disabled'}>
           <div class="sprint-card-title">Ear training</div>
           <div class="sprint-card-sub">Hear a short phrase, then echo it back — by ear.</div>
-          <div class="sprint-card-best">${earBest ? `Best: ${earBest}` : 'No score yet'}</div>
+          <div class="sprint-card-best">${earBest ? tFill('Best: {best}', { best: earBest }) : t('No score yet')}</div>
         </button>
         ${renderWeakSpots(APP.instrumentId)}
         ${renderPracticeTools()}
@@ -2148,7 +2148,7 @@ function renderEarScreen() {
         <div class="ear-palette-label">Your notes</div>
         <div class="ear-palette">${palette}</div>
         <div class="ear-footer">
-          ${best ? `<span class="ear-best">Best: ${best}</span>` : '<span></span>'}
+          ${best ? `<span class="ear-best">${tFill('Best: {best}', { best })}</span>` : '<span></span>'}
           <button class="btn btn-secondary" data-action="ear-new">Try another</button>
         </div>
       </div>
@@ -2392,7 +2392,7 @@ function renderDigestScreen(now = new Date()) {
         </div>
         <div class="report-section-label">Daily practice (minutes)</div>
         <div class="digest-bars digest-bars-tall">${bars}</div>
-        ${d.bestDayLabel ? `<div class="digest-best">Best day: ${d.bestDayLabel} · ${d.bestDayMinutes} min</div>` : ''}
+        ${d.bestDayLabel ? `<div class="digest-best">${tFill('Best day: {label} · {minutes} min', { label: d.bestDayLabel, minutes: d.bestDayMinutes })}</div>` : ''}
         <div class="report-section-label">Weekly goal</div>
         <div class="digest-goal-track digest-goal-track-lg"><div class="digest-goal-fill${d.goalMet ? ' digest-goal-met' : ''}" style="width:${d.goalPct}%"></div></div>
         <div class="digest-goal-status">${goalStatus}</div>
@@ -2421,7 +2421,7 @@ function renderSprintView(inst) {
         <div class="complete-layout">
           <div class="sprint-result-score">${s.score}</div>
           <div class="complete-sub">correct in ${SPRINT_SECONDS} seconds</div>
-          ${s.isBest ? `<div class="sprint-best-badge">New best!</div>` : `<div class="sprint-result-best">Best: ${best}</div>`}
+          ${s.isBest ? `<div class="sprint-best-badge">${t('New best!')}</div>` : `<div class="sprint-result-best">${tFill('Best: {best}', { best })}</div>`}
           <div class="complete-xp">+${s.xp} XP</div>
           <div class="gap-lg"></div>
           <button class="btn btn-primary btn-wide" data-action="sprint-again">Play again</button>
