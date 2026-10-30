@@ -176,16 +176,30 @@ const AudioEngine = (() => {
   }
 
   function unlock() {
-    const c = getCtx();
-    if (c.state === 'suspended') {
-      try { c.resume(); } catch (e) {}
+    if (!ctx) {
+      try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
     }
+    const c = ctx;
     try {
-      const buffer = c.createBuffer(1, 1, 22050);
+      const p = c.resume();
+      if (p && typeof p.then === 'function') { p.then(() => {}).catch(() => {}); }
+    } catch (e) {}
+    try {
+      const buffer = c.createBuffer(1, c.sampleRate * 0.1, c.sampleRate);
       const source = c.createBufferSource();
       source.buffer = buffer;
       source.connect(c.destination);
       source.start(0);
+      source.stop(c.currentTime + 0.1);
+    } catch (e) {}
+    try {
+      const osc = c.createOscillator();
+      const gain = c.createGain();
+      gain.gain.value = 0;
+      osc.connect(gain);
+      gain.connect(c.destination);
+      osc.start(0);
+      osc.stop(c.currentTime + 0.1);
     } catch (e) {}
   }
 
