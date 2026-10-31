@@ -818,20 +818,20 @@ function buildPracticeReport(name, now = new Date()) {
 // Plain-text version for the clipboard / email.
 function formatReportText(report) {
   const lines = [];
-  lines.push(`Practice report — ${report.student}`);
+  lines.push(tFill('Practice report — {student}', { student: report.student }));
   lines.push(report.date);
   lines.push('');
-  lines.push(`Level ${report.level} · ${report.xp} XP · ${report.streak}-day streak · ${report.totalMinutes} min practiced`);
-  lines.push(`Badges: ${report.badges.length}/${report.badgeTotal}${report.badges.length ? ' — ' + report.badges.join(', ') : ''}`);
+  lines.push(tFill('Level {level} · {xp} XP · {streak}-day streak · {minutes} min practiced', { level: report.level, xp: report.xp, streak: report.streak, minutes: report.totalMinutes }));
+  lines.push(tFill('Badges: {earned}/{total}{suffix}', { earned: report.badges.length, total: report.badgeTotal, suffix: report.badges.length ? ' — ' + report.badges.map(b => t(b)).join(', ') : '' }));
   lines.push('');
   if (!report.instruments.length) {
-    lines.push('No practice recorded yet.');
+    lines.push(t('No practice recorded yet.'));
   } else {
     report.instruments.forEach(r => {
-      lines.push(`${r.name}: ${r.notesLearned}/${r.notesTotal} notes · ${r.songsCompleted}/${r.songsTotal} songs · ${r.xp} XP`);
-      lines.push(`  Mastery: ${r.mastery.mastered} mastered, ${r.mastery.practiced} practiced, ${r.mastery.learning} learning`);
+      lines.push(tFill('{name}: {notesLearned}/{notesTotal} notes · {songsCompleted}/{songsTotal} songs · {xp} XP', { name: r.name, notesLearned: r.notesLearned, notesTotal: r.notesTotal, songsCompleted: r.songsCompleted, songsTotal: r.songsTotal, xp: r.xp }));
+      lines.push(tFill('  Mastery: {mastered} mastered, {practiced} practiced, {learning} learning', { mastered: r.mastery.mastered, practiced: r.mastery.practiced, learning: r.mastery.learning }));
       if (r.weak.length) {
-        lines.push(`  Focus: ${r.weak.map(w => w.name + ' (' + w.accuracy + '%)').join(', ')}`);
+        lines.push(tFill('  Focus: {notes}', { notes: r.weak.map(w => w.name + ' (' + w.accuracy + '%)').join(', ') }));
       }
     });
   }
@@ -883,10 +883,10 @@ function getWeekDays(now = new Date()) {
 }
 
 function digestHeadline(activeDays, totalMinutes) {
-  if (activeDays === 0) return 'No practice logged this week — pick a lesson to start.';
-  if (activeDays <= 2) return `Nice start — ${totalMinutes} minute${totalMinutes === 1 ? '' : 's'} this week.`;
-  if (activeDays <= 4) return `Solid week — you practiced ${activeDays} days!`;
-  return `Amazing week — you showed up ${activeDays} days!`;
+  if (activeDays === 0) return t('No practice logged this week — pick a lesson to start.');
+  if (activeDays <= 2) return tFill('Nice start — {minutes} minute{plural} this week.', { minutes: totalMinutes, plural: totalMinutes === 1 ? '' : 's' });
+  if (activeDays <= 4) return tFill('Solid week — you practiced {days} days!', { days: activeDays });
+  return tFill('Amazing week — you showed up {days} days!', { days: activeDays });
 }
 
 function buildWeeklyDigest(name, now = new Date()) {
@@ -946,24 +946,24 @@ function markDigestReminded(now = new Date()) {
 function maybeRemindDigest(now = new Date()) {
   if (!shouldRemindDigest(now)) return false;
   markDigestReminded(now);
-  showToast('\u{1F4C8} Your week in music is ready!');
+  showToast(t('\u{1F4C8} Your week in music is ready!'));
   return true;
 }
 
 function formatDigestText(digest) {
   const lines = [];
-  lines.push(`This week in music — ${digest.student}`);
-  lines.push(`${digest.weekStart} to ${digest.weekEnd}`);
+  lines.push(tFill('This week in music — {student}', { student: digest.student }));
+  lines.push(tFill('{start} to {end}', { start: digest.weekStart, end: digest.weekEnd }));
   lines.push('');
   lines.push(digest.headline);
-  lines.push(`Level ${digest.level} · ${digest.streak}-day streak · ${digest.totalMinutes} min across ${digest.activeDays} day${digest.activeDays === 1 ? '' : 's'}`);
+  lines.push(tFill('Level {level} · {streak}-day streak · {minutes} min across {days} day{plural}', { level: digest.level, streak: digest.streak, minutes: digest.totalMinutes, days: digest.activeDays, plural: digest.activeDays === 1 ? '' : 's' }));
   if (digest.bestDayLabel) {
-    lines.push(`Best day: ${digest.bestDayLabel} (${digest.bestDayMinutes} min)`);
+    lines.push(tFill('Best day: {label} ({minutes} min)', { label: digest.bestDayLabel, minutes: digest.bestDayMinutes }));
   }
-  lines.push(`Daily: ${digest.days.map(d => d.label + ' ' + d.minutes).join(' · ')}`);
-  lines.push(`Weekly goal: ${digest.totalMinutes}/${digest.goalMinutes} min${digest.goalMet ? ' — met!' : ''}`);
+  lines.push(tFill('Daily: {values}', { values: digest.days.map(d => d.label + ' ' + d.minutes).join(' · ') }));
+  lines.push(tFill('Weekly goal: {total}/{goal} min{met}', { total: digest.totalMinutes, goal: digest.goalMinutes, met: digest.goalMet ? ' — met!' : '' }));
   if (digest.badges.length) {
-    lines.push(`New badges this week: ${digest.badges.map(b => b.name).join(', ')}`);
+    lines.push(tFill('New badges this week: {names}', { names: digest.badges.map(b => b.name).join(', ') }));
   }
   return lines.join('\n');
 }
@@ -1169,7 +1169,7 @@ function startRecording() {
     mediaRecorder.start();
     APP.recorder = { mediaRecorder, stream };
     render();
-  }).catch(() => showToast('Microphone unavailable.'));
+  }).catch(() => showToast(t('Microphone unavailable.')));
 }
 
 function stopRecording() {
@@ -1180,7 +1180,7 @@ function stopRecording() {
 function playRecording() {
   if (!APP.recordingUrl) return;
   const audio = new Audio(APP.recordingUrl);
-  audio.play().catch(() => showToast('Could not play the recording.'));
+  audio.play().catch(() => showToast(t('Could not play the recording.')));
 }
 
 function cleanupRecording() {
@@ -1302,7 +1302,7 @@ function showToast(msg) {
 function showTranslationEditor() {
   const lang = getLang();
   if (lang === 'en') {
-    showToast('Switch to PT or FR first.');
+    showToast(t('Switch to PT or FR first.'));
     return;
   }
   const overrides = getUserOverrides(lang);
@@ -1350,14 +1350,14 @@ function showTranslationEditor() {
       localStorage.setItem(OVERRIDE_STORAGE_KEY + '_' + lang, JSON.stringify(newOverrides));
     } catch (e) {}
     overlay.remove();
-    showToast('Translations saved!');
+    showToast(t('Translations saved!'));
     render();
   });
   overlay.querySelector('[data-action="clear-translations"]').addEventListener('click', () => {
     if (confirm('Clear all custom translations for this language?')) {
       clearUserOverrides(lang);
       overlay.remove();
-      showToast('Translations reset.');
+      showToast(t('Translations reset.'));
       render();
     }
   });
@@ -2508,7 +2508,7 @@ function startSprintTimer() {
 
 function startSprint(mode) {
   const learned = getLearnedNotes(APP.instrumentId);
-  if (learned.length < 2) { showToast('Learn a couple of notes first.'); return; }
+  if (learned.length < 2) { showToast(t('Learn a couple of notes first.')); return; }
   APP.sprint = {
     mode,
     endsAt: Date.now() + SPRINT_SECONDS * 1000,
@@ -2835,7 +2835,7 @@ function startSongAudioPlayback(inst, lesson) {
         if (fingEl) fingEl.innerHTML = fingeringSvg(inst, note, 84);
         if (staffEl) staffEl.innerHTML = Graphics.staffSVG({ pos: note.staffStep, accidental: note.accidental, clef: inst.clef, accentColor: instAccent(inst), width: 96 });
         if (nameEl) nameEl.textContent = note.noteName;
-        if (progEl) progEl.textContent = `Note ${i + 1} of ${noteIds.length}`;
+        if (progEl) progEl.textContent = tFill('Note {current} of {total}', { current: i + 1, total: noteIds.length });
       }, startBeat * msPerBeat);
       APP.audioPlaybackTimeouts.push(t);
     });
@@ -3148,7 +3148,7 @@ function renderCompletePhase(inst, lesson) {
         <div class="complete-stars">${starsHtml}</div>
         <div class="complete-xp">+${xp} XP</div>
         <div class="complete-title">Review complete!</div>
-        <div class="complete-sub">${APP.reviewCorrect} of ${APP.reviewTotal} on first try</div>
+        <div class="complete-sub">${tFill('{correct} of {total} on first try', { correct: APP.reviewCorrect, total: APP.reviewTotal })}</div>
         <div class="review-notes-list">${notesHtml}</div>
         <div class="gap-lg"></div>
         <button class="btn btn-primary btn-wide" data-action="finish-lesson">Continue</button>
@@ -3171,7 +3171,7 @@ function renderCompletePhase(inst, lesson) {
   const exportBtn = isSong ? `<button class="btn btn-secondary" data-action="export-musicxml" style="width:100%;margin-bottom:8px">Export MusicXML</button>` : '';
   // Mastery is tracked per note, so it is meaningless for a song (whose id is
   // not a note) — only show the badge for regular note lessons.
-  const masteryBadge = isSong ? '' : `<div style="margin-top:8px;padding:6px 14px;border-radius:20px;background:${masteryColor}22;color:${masteryColor};font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">${getMasteryLabel(masteryLevel)} — ${mastery} correct</div>`;
+  const masteryBadge = isSong ? '' : `<div style="margin-top:8px;padding:6px 14px;border-radius:20px;background:${masteryColor}22;color:${masteryColor};font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">${getMasteryLabel(masteryLevel)} — ${mastery} ${t('correct')}</div>`;
 
   return `
     <div class="complete-layout">
@@ -3569,11 +3569,11 @@ function stopTuner() {
 
 function startTuner() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    showToast('Microphone not available for tuning.');
+    showToast(t('Microphone not available for tuning.'));
     return;
   }
   const Ctx = window.AudioContext || window.webkitAudioContext;
-  if (!Ctx) { showToast('Audio analysis not supported here.'); return; }
+  if (!Ctx) { showToast(t('Audio analysis not supported here.')); return; }
   stopTuner();
   APP.tuner = { running: true, freq: -1, ctx: null, stream: null, frame: null };
   const t = APP.tuner;
@@ -3597,7 +3597,7 @@ function startTuner() {
     loop();
   }).catch(() => {
     if (APP.tuner) APP.tuner.running = false;
-    showToast('Could not access the microphone.');
+    showToast(t('Could not access the microphone.'));
     renderToolWidget();
   });
 }
@@ -3862,7 +3862,7 @@ function handleAction(action, el) {
       saveMotivation();
       APP.screen = 'select';
       render();
-      showToast('Progress reset.');
+      showToast(t('Progress reset.'));
       break;
     }
 
@@ -3883,7 +3883,7 @@ function handleAction(action, el) {
 
     case 'copy-report': {
       const text = formatReportText(buildPracticeReport(getStudentName()));
-      copyText(text).then(ok => showToast(ok ? 'Report copied to clipboard.' : 'Copy failed — try Print instead.'));
+      copyText(text).then(ok => showToast(ok ? t('Report copied to clipboard.') : t('Copy failed — try Print instead.')));
       break;
     }
 
@@ -3920,7 +3920,7 @@ function handleAction(action, el) {
 
     case 'copy-digest': {
       const text = formatDigestText(buildWeeklyDigest(getStudentName()));
-      copyText(text).then(ok => showToast(ok ? 'Weekly recap copied.' : 'Copy failed — try Print instead.'));
+      copyText(text).then(ok => showToast(ok ? t('Weekly recap copied.') : t('Copy failed — try Print instead.')));
       break;
     }
 
@@ -4157,7 +4157,7 @@ function handleAction(action, el) {
     }
 
     case 'locked-node':
-      showToast('Finish the previous note first.');
+      showToast(t('Finish the previous note first.'));
       break;
 
     case 'plan-start': {
@@ -4191,7 +4191,7 @@ function handleAction(action, el) {
 
     case 'open-ear': {
       if (getLearnedNotes(APP.instrumentId).length < 2) {
-        showToast('Learn two notes to unlock ear training.');
+        showToast(t('Learn two notes to unlock ear training.'));
         break;
       }
       startEarRound(APP.instrumentId);
@@ -4220,7 +4220,7 @@ function handleAction(action, el) {
       submitEarPick(APP.instrumentId, el.dataset.id);
       render();
       if (APP.ear && APP.ear.finished && APP.ear.graded && earScore(APP.ear.graded) === APP.ear.phrase.length) {
-        showToast('\u{1F442} Golden ear! Perfect echo.');
+        showToast(t('\u{1F442} Golden ear! Perfect echo.'));
       }
       break;
     }
@@ -4562,7 +4562,7 @@ function handleAction(action, el) {
       const allImported = JSON.parse(LS.getItem(IMPORTED_SONGS_KEY) || '{}');
       const songs = allImported[APP.instrumentId] || [];
       const song = songs[idx];
-      if (!song) { showToast('Song not found.'); break; }
+      if (!song) { showToast(t('Song not found.')); break; }
       APP.importedSong = song;
       APP.lessonIndex = -1;
       APP.phase = 'present';
@@ -4665,7 +4665,7 @@ document.addEventListener('change', (e) => {
       showToast(t('Import error: ') + err.message);
     }
   };
-  reader.onerror = () => showToast('Error reading file.');
+  reader.onerror = () => showToast(t('Error reading file.'));
   reader.readAsText(file);
   input.value = '';
 });
@@ -4683,7 +4683,7 @@ maybeRemindDigest();
 // ── SERVICE WORKER UPDATE NOTIFICATION ──────────────────────────────────────
 if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (typeof showToast === 'function') showToast('Update available — reload to get the latest version.');
+    if (typeof showToast === 'function') showToast(t('Update available — reload to get the latest version.'));
   });
   navigator.serviceWorker.ready.then(reg => {
     reg.addEventListener('updatefound', () => {
@@ -4691,7 +4691,7 @@ if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
       if (newWorker) {
         newWorker.addEventListener('statechange', () => {
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            if (typeof showToast === 'function') showToast('Update available — reload to get the latest version.');
+            if (typeof showToast === 'function') showToast(t('Update available — reload to get the latest version.'));
           }
         });
       }
