@@ -1,9 +1,10 @@
-const CACHE = 'preludio-strings-v13';
+const CACHE = 'preludio-strings-v14';
 const FILES = [
   './',
   './index.html',
   './manifest.json',
   './icon.svg',
+  './logo.svg',
   './icon-180.png',
   './icon-192.png',
   './icon-512.png',
