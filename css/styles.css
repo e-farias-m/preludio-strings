@@ -208,23 +208,11 @@ button:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2
   margin-bottom: 20px;
 }
 
-.wordmark-logo {
-  width: 32px; height: 32px;
-}
-
 .wordmark-logo-full {
   height: 44px;
   width: auto;
   display: block;
 }
-
-.wordmark-text {
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  color: var(--accent-warm);
-}
-.wordmark-text span { color: var(--text-primary); }
 
 .select-headline {
   font-size: 28px;
