@@ -8,8 +8,8 @@
   --bg-highlight: #2C2B62;
 
   /* Accents */
-  --accent-warm:  #FF8C42;
-  --accent-warm2: #FFA466;
+  --accent-warm:  #AB8CF2;
+  --accent-warm2: #C9A8F5;
   --accent-cool:  #8B7BFF;
   --success:      #4FD98A;
   --error:        #FF5A5A;
@@ -23,7 +23,7 @@
 
   /* Borders */
   --border:       #2C2B62;
-  --border-focus: #FF8C42;
+  --border-focus: #AB8CF2;
 
   /* Radius */
   --r-sm:  8px;
@@ -33,7 +33,7 @@
 
   /* Shadows */
   --shadow-card: 0 4px 24px rgba(0,0,0,0.45);
-  --shadow-glow: 0 0 20px rgba(255, 140, 66, 0.25);
+  --shadow-glow: 0 0 20px rgba(171, 140, 242, 0.25);
 
   /* Diagram stages — the panel behind fingerings/notation. */
   --diagram-stage:        #0B0A1A;
@@ -53,7 +53,7 @@
 
   /* Per-note mastery scale */
   --mastery-new:       #524F70;
-  --mastery-learning:  #FF8C42;
+  --mastery-learning:  #AB8CF2;
   --mastery-practiced: #8B7BFF;
   --mastery-mastered:  #4FD98A;
 }
@@ -66,8 +66,8 @@
   --bg-card:      #FFFFFF;
   --bg-highlight: #E7E5F3;
 
-  --accent-warm:  #B8500F;
-  --accent-warm2: #CE6220;
+  --accent-warm:  #6A43C3;
+  --accent-warm2: #AB8CF2;
   --accent-cool:  #5A44D0;
   --success:      #14713F;
   --error:        #C22B2B;
@@ -79,10 +79,10 @@
   --text-faint:   #8E8AB0;
 
   --border:       #DCDAEA;
-  --border-focus: #B8500F;
+  --border-focus: #6A43C3;
 
   --shadow-card: 0 4px 20px rgba(28,26,51,0.10);
-  --shadow-glow: 0 0 20px rgba(224,106,30,0.22);
+  --shadow-glow: 0 0 20px rgba(106, 67, 195, 0.22);
 
   --diagram-stage:        #FFFFFF;
   --diagram-stage-border: #D8D5EC;
@@ -99,7 +99,7 @@
   --accent-cello:          #1E7F96;
 
   --mastery-new:       #5E5A80;
-  --mastery-learning:  #B8500F;
+  --mastery-learning:  #6A43C3;
   --mastery-practiced: #5A44D0;
   --mastery-mastered:  #14713F;
 }
@@ -509,7 +509,7 @@ button:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2
 
 @keyframes pulse-node {
   0%, 100% { box-shadow: var(--shadow-glow); }
-  50%       { box-shadow: 0 0 32px rgba(255,140,66,0.55); }
+  50%       { box-shadow: 0 0 32px rgba(171, 140, 242, 0.55); }
 }
 
 .map-node-note {
@@ -1040,9 +1040,9 @@ button:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2
 .btn-primary {
   background: var(--accent-warm);
   color: var(--bg-deep);
-  box-shadow: 0 4px 16px rgba(255,140,66,0.35);
+  box-shadow: 0 4px 16px rgba(171, 140, 242, 0.35);
 }
-.btn-primary:hover { box-shadow: 0 6px 24px rgba(255,140,66,0.5); transform: translateY(-1px); }
+.btn-primary:hover { box-shadow: 0 6px 24px rgba(171, 140, 242, 0.5); transform: translateY(-1px); }
 
 .btn-secondary {
   background: var(--bg-elevated);
