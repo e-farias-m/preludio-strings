@@ -312,10 +312,10 @@ for (const inst of Object.values(CURRICULUM)) {
     'a one-bar tune draws only the closing bar line');
   check(barLines(Graphics.melodySVG({ notes: q(3), accentColor: '#e0a020' })) === 1,
     'an incomplete pickup bar draws only the closing bar line');
-  check(barLines(Graphics.melodySVG({ notes: q(5), accentColor: '#e0a020' })) === 2,
+  check(barLines(Graphics.melodySVG({ notes: q(5), accentColor: '#e0a020', pickup: 1 })) === 2,
     'a 1-beat pickup plus a full bar draws one interior bar line');
   const half = [{ pos: 2, duration: 1 }, { pos: 2, duration: 1 }, { pos: 2, duration: 1 }, { pos: 2, duration: 2 }];
-  check(barLines(Graphics.melodySVG({ notes: half, accentColor: '#e0a020' })) === 2,
+  check(barLines(Graphics.melodySVG({ notes: half, accentColor: '#e0a020', pickup: 1 })) === 2,
     'a half note is never split by a bar line');
 }
 
