@@ -134,6 +134,9 @@ const Graphics = (() => {
   // so the widest clef still clears it.
   const CLEF_STAFF_LEFT = { treble: 20, alto: 20, bass: 20 };
   const CLEF_MELODY_LEFT = { treble: 18, alto: 18, bass: 18 };
+  // Song clefs are drawn at 0.8 of the staff spacing: a treble clef is about 7
+  // staff spaces tall, so this reaches roughly 1.4 staff heights.
+  const CLEF_MELODY_SCALE = 0.8;
 
   // ── STAFF NOTATION ──────────────────────────────────────────────────────
   function staffSVG({ pos, accidental = null, clef = 'treble', accentColor = 'var(--accent-warm)', width = 130 }) {
@@ -203,8 +206,7 @@ const Graphics = (() => {
   function melodySVG({ notes = [], highlightIndex = -1, clef = 'treble', accentColor = 'var(--accent-warm)', width = 320, perSystem = 6, beatsPerBar = 4 }) {
     if (!notes.length) return '';
     const VB_W = 360;
-    // A full-size treble clef stands 7 staff spaces tall and reaches about a
-    // space and a half below the staff, so each system needs room for it.
+    // Each system leaves room for the clef, which overhangs the staff.
     const SYSTEM_H = 180;
     const TOP_LINE_Y = 64;
     const sigX = 100;          // time signature, centred
@@ -269,8 +271,7 @@ const Graphics = (() => {
       }
       const clefName = CLEF_GLYPH[clef] ? clef : 'treble';
       const cmet = CLEF_GLYPH[clefName];
-      // Enlarge the clef by 50% so it clearly covers the full staff height.
-      svg += clefAt(clefName, CLEF_MELODY_LEFT[clefName], STAFF_SPACE * 1.5, y(cmet.refPos), INK);
+      svg += clefAt(clefName, CLEF_MELODY_LEFT[clefName], STAFF_SPACE * CLEF_MELODY_SCALE, y(cmet.refPos), INK);
       // Time signature: "4" over "4" centred on the middle of the staff.
       if (s === 0) {
         svg += `<text x="${sigX}" y="${y(4) - 1}" font-size="26" font-weight="700" text-anchor="middle" font-family="Georgia, serif" fill="${INK}">${beatsPerBar}</text>`;
