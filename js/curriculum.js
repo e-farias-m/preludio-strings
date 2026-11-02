@@ -191,66 +191,84 @@ const CANONICAL_SONGS = {
   'My First Note': {
     degrees: [1, 1, 1, 1, 1, 1],
     durations: [1, 1, 2, 1, 1, 2],
+    timeSig: { num: 4, den: 4 },
   },
   'Two Open Strings': {
     degrees: [1, 5, 1, 5, 1, 5, 1, 5],
     durations: [1, 1, 1, 1, 1, 1, 1, 2],
+    timeSig: { num: 3, den: 4 },
   },
   'Three Open Strings': {
     degrees: [1, 5, 9, 5, 1, 5, 9],
     durations: [1, 1, 1, 1, 1, 1, 2],
+    timeSig: { num: 4, den: 4 },
   },
   'Four Open Strings': {
     degrees: [1, 5, 9, 13, 9, 5, 1],
     durations: [1, 1, 1, 1, 1, 1, 2],
+    timeSig: { num: 4, den: 4 },
   },
   'Step Up and Down': {
     degrees: [1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1],
     durations: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2],
+    timeSig: { num: 2, den: 4 },
   },
   'Hot Cross Buns': {
     degrees: [3, 2, 1, 3, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 2, 1],
     durations: [1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2],
+    timeSig: { num: 4, den: 4 },
   },
   'Frere Jacques': {
     degrees: [1, 2, 3, 1, 1, 2, 3, 1, 3, 4, 5, 3, 4, 5],
-    durations: [1, 1, 1, 2, 1, 1, 1, 2, 2, 2, 2, 1, 1, 2],
+    durations: [1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 2],
+    timeSig: { num: 4, den: 4 },
   },
   'Merrily We Roll Along': {
     degrees: [3, 2, 1, 2, 3, 3, 3, 2, 2, 2, 3, 3, 3, 3, 2, 1, 2, 3, 3, 3, 2, 2, 3, 2, 1],
-    durations: [1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 2],
+    durations: [1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 4],
+    timeSig: { num: 4, den: 4 },
   },
   'Lightly Row': {
     degrees: [5, 3, 3, 4, 2, 2, 1, 2, 3, 4, 5, 5, 5, 5, 3, 3, 4, 2, 2, 1, 3, 5, 5, 1],
     durations: [1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 2, 2, 1, 1, 2],
+    timeSig: { num: 4, den: 4 },
+    pickup: 1,
   },
   'Long, Long Ago': {
     degrees: [5, 5, 3, 3, 4, 4, 2, 2, 3, 3, 1, 1, 2, 5, 5],
     durations: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2],
+    timeSig: { num: 4, den: 4 },
   },
   'Twinkle Twinkle Little Star': {
     degrees: [1, 1, 5, 5, 6, 6, 5, 4, 4, 3, 3, 2, 2, 1],
     durations: [1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2],
+    timeSig: { num: 4, den: 4 },
   },
   'Ode to Joy': {
     degrees: [3, 3, 4, 5, 5, 4, 3, 2, 1, 1, 2, 3, 3, 2, 2],
     durations: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2],
+    timeSig: { num: 4, den: 4 },
   },
   'Jingle Bells': {
     degrees: [3, 3, 3, 3, 3, 3, 3, 5, 1, 2, 3, 4, 4, 4, 4, 4, 3, 3, 3, 3, 2, 2, 3, 2, 1],
-    durations: [1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 2, 1, 1, 1, 1, 2],
+    durations: [1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 2, 1, 1, 1, 1, 4],
+    timeSig: { num: 4, den: 4 },
   },
   'Row, Row, Row Your Boat': {
     degrees: [1, 1, 1, 2, 3, 1, 1, 1, 2, 3, 1, 1, 1, 5, 5, 4, 4, 3, 3, 2, 2, 1],
-    durations: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2],
+    durations: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3],
+    timeSig: { num: 3, den: 4 },
   },
   'Yankee Doodle': {
     degrees: [5, 5, 1, 1, 2, 2, 1, 5, 5, 1, 1, 2, 2, 1, 5, 5, 1, 1, 5, 5, 2, 2, 1, 7, 7, 6, 6, 5, 5, 4],
     durations: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2],
+    timeSig: { num: 2, den: 4 },
+    pickup: 1,
   },
   'Minuet in G': {
     degrees: [5, 1, 1, 2, 3, 4, 5, 5, 4, 5, 4, 3, 2, 3, 1, 2, 3, 4, 3, 2, 1, 2],
     durations: [1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2],
+    timeSig: { num: 3, den: 4 },
   },
 };
 
@@ -534,6 +552,8 @@ for (const inst of Object.values(CURRICULUM)) {
     const noteIds = song.degrees.map(idFor).filter(Boolean);
     lesson.noteIds = noteIds;
     lesson.durations = song.durations.slice();
+    lesson.timeSig = song.timeSig;
+    if (song.pickup) lesson.pickup = song.pickup;
     lesson.prerequisiteIds = [...new Set(noteIds)];
   }
 }

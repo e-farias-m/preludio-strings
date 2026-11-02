@@ -244,6 +244,23 @@ for (const id of INSTRUMENT_ORDER) {
 }
 
 // ── Report ─────────────────────────────────────────────────────────────────
+// ── Song meters: every song has a time signature, and no note crosses a bar line
+{
+  const DUR = { w: 4, h: 2, q: 1, e: 0.5, s: 0.25 };
+  const songs = Object.values(CURRICULUM).flatMap(inst => (inst.lessons || []).filter(l => l.type === 'song'));
+  check(songs.length > 0, 'the curriculum has songs to check');
+  songs.forEach(l => {
+    check(l.timeSig && l.timeSig.num > 0 && l.timeSig.den > 0, `${l.id} (${l.noteName}) has a time signature`);
+    if (!l.timeSig) return;
+    const bpb = l.timeSig.num * 4 / l.timeSig.den;
+    const pickup = l.pickup || 0;
+    const durs = (l.noteIds || []).map((_, i) => { const d = (l.durations || [])[i]; return typeof d === 'number' ? d : (DUR[d] || 1); });
+    let cum = 0, straddles = 0;
+    durs.forEach(d => { const s0 = cum - pickup; cum += d; const e0 = cum - pickup; if (Math.floor(s0 / bpb + 1e-9) !== Math.floor((e0 - 1e-9) / bpb)) straddles++; });
+    check(straddles === 0, `${l.id} (${l.noteName}): no note crosses a bar line (${straddles} do)`);
+  });
+}
+
 console.log(`test-curriculum: ${pass} passed, ${fail} failed`);
 if (fail) {
   failures.forEach(f => console.log('  FAIL: ' + f));
