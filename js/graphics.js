@@ -203,7 +203,7 @@ const Graphics = (() => {
   // The note at `highlightIndex` is drawn in the accent colour with a soft halo
   // so the tune reads like sheet music with the student's current note called
   // out; the rest stay in ink.
-  function melodySVG({ notes = [], highlightIndex = -1, clef = 'treble', accentColor = 'var(--accent-warm)', width = 320, perSystem = 6, beatsPerBar = 4, timeSig = null, pickup = 0 }) {
+  function melodySVG({ notes = [], highlightIndex = -1, clef = 'treble', accentColor = 'var(--accent-warm)', width = 320, perSystem = 6, beatsPerBar = 4, timeSig = null, pickup = 0, gaps = [] }) {
     if (!notes.length) return '';
     const VB_W = 360;
     // Each system leaves room for the clef, which overhangs the staff.
@@ -221,14 +221,17 @@ const Graphics = (() => {
     const bpb = timeSig ? timeSig.num * 4 / timeSig.den : beatsPerBar;
     const sigNum = timeSig ? timeSig.num : beatsPerBar;
     const sigDen = timeSig ? timeSig.den : 4;
-    const cum = [];
-    durs.reduce((acc, d) => { const v = acc + d; cum.push(v); return v; }, 0);
+    const gapArr = Array.isArray(gaps) ? gaps : [];
+    const starts = [];
+    let beatPos = pickup;
+    for (let g = 0; g < notes.length; g++) {
+      starts.push(beatPos);
+      beatPos += (typeof gapArr[g] === 'number' ? gapArr[g] : 0) + durs[g];
+    }
     // A note belongs to the bar it starts in, so a bar line never cuts through
-    // a note and every bar gets both of its lines.
-    const barOf = notes.map((_, g) => {
-      const start = cum[g] - durs[g] - pickup;
-      return pickup > 0 ? Math.max(0, Math.floor(start / bpb + 1e-9) + 1) : Math.floor(start / bpb + 1e-9);
-    });
+    // a note and every bar gets both of its lines. Rest gaps shift the notes
+    // they precede, so bars stay whole in songs that have rests.
+    const barOf = notes.map((_, g) => Math.floor(starts[g] / bpb + 1e-9));
     const bars = [];
     notes.forEach((_, g) => {
       if (!bars.length || barOf[g] !== barOf[g - 1]) bars.push([]);
@@ -269,42 +272,55 @@ const Graphics = (() => {
         svg += `<text x="${sigX}" y="${y(2) + 15}" font-size="26" font-weight="700" text-anchor="middle" font-family="Georgia, serif" fill="${INK}">${sigDen}</text>`;
       }
 
-      const spacing = (rightX - leftX) / systemNotes.length;
       let globalIndex = systems.slice(0, s).reduce((a, sys) => a + sys.length, 0);
+      let sysBase = Infinity;
+      let sysEnd = 0;
+      systemNotes.forEach((note, k) => { const g = globalIndex + k; sysBase = Math.min(sysBase, starts[g]); sysEnd = Math.max(sysEnd, starts[g] + durs[g] + (gapArr[g] || 0)); });
+      if (sysBase === Infinity) sysBase = 0;
+      const sysSpan = sysEnd - sysBase || 1;
       systemNotes.forEach((note, k) => {
         const g = globalIndex + k;
-        const x = leftX + spacing * (k + 0.5);
+        const x = leftX + ((starts[g] - sysBase) / sysSpan) * (rightX - leftX);
         const noteY = y(note.pos);
         const lit = g === highlightIndex;
         const color = lit ? accentColor : INK;
         const duration = durs[g];
-        const open = duration >= 2;                       // half and longer: hollow
-        const stemmed = duration < 4;                     // whole notes lose the stem
+        const gap = gapArr[g] || 0;
+        const effective = gap > 0 ? gap : duration;
+        const open = effective >= 2;                     // half and longer: hollow
+        const stemmed = effective < 4;                  // whole notes lose the stem
 
         // Bar line just before this note when the previous note ended a bar.
         if (k > 0 && barOf[g] !== barOf[g - 1]) {
-          const bx = x - spacing / 2;
+          const bx = x - ((rightX - leftX) / systemNotes.length) / 2;
           svg += `<line x1="${bx}" y1="${y(8)}" x2="${bx}" y2="${y(0)}" stroke="${INK}" stroke-width="1.3"/>`;
         }
 
         if (lit) svg += `<circle cx="${x}" cy="${noteY}" r="13" fill="${accentColor}" opacity="0.18"/>`;
-        ledgerPositions(note.pos).forEach(p => {
-          svg += `<line x1="${x - 10}" y1="${y(p)}" x2="${x + 10}" y2="${y(p)}" stroke="${color}" stroke-width="1.3"/>`;
-        });
-        if (note.accidental) {
-          svg += `<text x="${x - 15}" y="${noteY + 5}" font-size="18" fill="${color}" font-family="Georgia, serif">${note.accidental}</text>`;
-        }
-        // Hollow noteheads read clearly against the staff, so they skip the dark
-        // separating ring a filled head needs; both keep the same rotation.
-        const headFill = open ? 'none' : color;
-        const headStroke = open ? color : OPEN;
-        const headStrokeW = open ? 1.8 : 1.2;
-        svg += `<ellipse cx="${x}" cy="${noteY}" rx="6.2" ry="4.6" fill="${headFill}" stroke="${headStroke}" stroke-width="${headStrokeW}" transform="rotate(-18 ${x} ${noteY})"/>`;
-        if (stemmed) {
-          const stemUp = note.pos <= 4;
-          const stemX = stemUp ? x + 6 : x - 6;
-          const stemEnd = stemUp ? noteY - 34 : noteY + 34;
-          svg += `<line x1="${stemX}" y1="${noteY}" x2="${stemX}" y2="${stemEnd}" stroke="${color}" stroke-width="1.6"/>`;
+        if (gap > 0) {
+          // A rest stands for the gap: the same head its value calls for, with no
+          // ledger line and no stem.
+          const restOpen = gap >= 2;
+          svg += `<ellipse cx="${x}" cy="${noteY}" rx="6.2" ry="4.6" fill="${restOpen ? 'none' : color}" stroke="${restOpen ? color : OPEN}" stroke-width="${restOpen ? 1.8 : 1.2}" transform="rotate(-18 ${x} ${noteY})"/>`;
+        } else {
+          ledgerPositions(note.pos).forEach(p => {
+            svg += `<line x1="${x - 10}" y1="${y(p)}" x2="${x + 10}" y2="${y(p)}" stroke="${color}" stroke-width="1.3"/>`;
+          });
+          if (note.accidental) {
+            svg += `<text x="${x - 15}" y="${noteY + 5}" font-size="18" fill="${color}" font-family="Georgia, serif">${note.accidental}</text>`;
+          }
+          // Hollow noteheads read clearly against the staff, so they skip the dark
+          // separating ring a filled head needs; both keep the same rotation.
+          const headFill = open ? 'none' : color;
+          const headStroke = open ? color : OPEN;
+          const headStrokeW = open ? 1.8 : 1.2;
+          svg += `<ellipse cx="${x}" cy="${noteY}" rx="6.2" ry="4.6" fill="${headFill}" stroke="${headStroke}" stroke-width="${headStrokeW}" transform="rotate(-18 ${x} ${noteY})"/>`;
+          if (stemmed) {
+            const stemUp = note.pos <= 4;
+            const stemX = stemUp ? x + 6 : x - 6;
+            const stemEnd = stemUp ? noteY - 34 : noteY + 34;
+            svg += `<line x1="${stemX}" y1="${noteY}" x2="${stemX}" y2="${stemEnd}" stroke="${color}" stroke-width="1.6"/>`;
+          }
         }
       });
 

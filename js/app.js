@@ -3446,13 +3446,14 @@ function runPlaySequence(inst, lesson) {
 function runSongSequence(inst, lesson) {
   const noteIds = lesson.noteIds;
   const durations = getNoteDurations(lesson);
+  const gaps = Array.isArray(lesson.gaps) ? lesson.gaps : [];
   const msPerBeat = msPerBeatAt(lesson.bpm || 100, APP.songSpeed);
   let beat = 0;
   noteIds.forEach((id, i) => {
     const note = findLessonById(APP.instrumentId, id);
     const chordFreqs = getChordFrequencies(APP.instrumentId, lesson, i);
-    const start = beat;
-    beat += durations[i];
+    const start = beat + (gaps && gaps[i] ? gaps[i] : 0);
+    beat = start + durations[i];
     const seconds = durations[i] * msPerBeat / 1000;
     const tn = setTimeout(() => {
       if (chordFreqs.length > 0) {
@@ -3768,48 +3769,73 @@ function importSongFromMusicXML(xmlString, instrumentId) {
   if (parseError) throw new Error('Invalid XML: ' + parseError.textContent);
   const partName = doc.querySelector('part-name');
   const title = partName ? partName.textContent.trim() : 'Imported Song';
-  const noteEls = doc.querySelectorAll('measure note');
   const divisionsEl = doc.querySelector('attributes divisions');
   const divisions = divisionsEl ? parseFloat(divisionsEl.textContent) || 1 : 1;
+
   const noteIds = [];
   const durations = [];
-  noteEls.forEach(noteEl => {
-    if (noteEl.querySelector('chord')) return; // accompaniment is derived, not imported
-    if (noteEl.querySelector('rest')) return;
-    const step = noteEl.querySelector('pitch step');
-    const octave = noteEl.querySelector('pitch octave');
-    const alter = noteEl.querySelector('pitch alter');
-    if (!step || !octave) return;
-    let nn = step.textContent;
-    const oct = parseInt(octave.textContent, 10);
-    if (alter) {
-      const a = parseInt(alter.textContent, 10);
-      if (a === -1) nn += 'b';
-      else if (a === 1) nn += '#';
+  const gaps = [];
+  const unmatched = [];
+  const measures = Array.from(doc.querySelectorAll('measure'));
+  // Every song carries an explicit meter and each bar has to be complete, so
+  // the import reads the time signature and walks the measures measure by
+  // measure, letting rests fill the space between the real notes.
+  let timeSig = { num: 4, den: 4 };
+  for (const measureEl of measures) {
+    const timeEl = measureEl.querySelector('time');
+    if (timeEl) {
+      const beatsEl = timeEl.querySelector('beats');
+      const typeEl = timeEl.querySelector('beat-type');
+      const beats = beatsEl ? parseFloat(beatsEl.textContent) : 4;
+      const type = typeEl ? parseFloat(typeEl.textContent) : 4;
+      if (beats > 0) timeSig = { num: beats, den: type };
     }
-    const lessonId = matchNoteToLesson(instId, nn, oct);
-    if (!lessonId) return;
-    const durEl = noteEl.querySelector('duration');
-    const beats = durEl ? (parseFloat(durEl.textContent) || divisions) / divisions : 1;
-    // A note split across a barline is exported as tied pieces; glue them back
-    // onto the previous note instead of treating each piece as a new note.
-    const tieStop = !!noteEl.querySelector('tie[type="stop"]') ||
-      !!noteEl.querySelector('tied[type="stop"]');
-    if (tieStop && durations.length > 0) {
-      durations[durations.length - 1] += beats;
-      return;
+    let beat = 0;
+    let prevEnd = 0;
+    const noteEls = Array.from(measureEl.querySelectorAll('note'));
+    for (const noteEl of noteEls) {
+      const isRest = !!noteEl.querySelector('rest');
+      const isChord = !!noteEl.querySelector('chord');
+      const durEl = noteEl.querySelector('duration');
+      const beats = durEl ? (parseFloat(durEl.textContent) || divisions) / divisions : 1;
+      const start = beat;
+      if (!isRest && !isChord) {
+        const step = noteEl.querySelector('pitch step');
+        const octave = noteEl.querySelector('pitch octave');
+        const alter = noteEl.querySelector('pitch alter');
+        if (step && octave) {
+          let nn = step.textContent;
+          const oct = parseInt(octave.textContent, 10);
+          if (alter) {
+            const a = parseInt(alter.textContent, 10);
+            if (a === -1) nn += 'b';
+            else if (a === 1) nn += '#';
+          }
+          const lessonId = matchNoteToLesson(instId, nn, oct);
+          if (!lessonId) {
+            unmatched.push(nn + oct);
+          } else {
+            noteIds.push(lessonId);
+            durations.push(beats);
+            gaps.push(Math.max(0, start - prevEnd));
+          }
+          const tieStop = !!noteEl.querySelector('tie[type="stop"]') || !!noteEl.querySelector('tied[type="stop"]');
+          if (tieStop && durations.length > 0) durations[durations.length - 1] += beats;
+        }
+      }
+      beat += beats;
+      prevEnd = beat;
     }
-    noteIds.push(lessonId);
-    durations.push(beats);
-  });
+  }
+
   if (noteIds.length === 0) throw new Error('No playable notes found in MusicXML');
   const importedId = 'imported-' + Date.now();
-  const song = { id: importedId, type: 'song', noteName: title, prerequisiteIds: [], noteIds, durations, prompt: '', description: 'Imported from MusicXML.' };
+  const song = { id: importedId, type: 'song', noteName: title, prerequisiteIds: [], noteIds, durations, gaps, timeSig, pickup: 0, prompt: '', description: 'Imported from MusicXML.' };
   const existing = JSON.parse(LS.getItem(IMPORTED_SONGS_KEY) || '{}');
   if (!existing[instId]) existing[instId] = [];
   existing[instId].push(song);
   LS.setItem(IMPORTED_SONGS_KEY, JSON.stringify(existing));
-  return song;
+  return { song, unmatched };
 }
 
 // ── EVENT HANDLING ─────────────────────────────────────────────────────
@@ -4653,7 +4679,13 @@ document.addEventListener('change', (e) => {
   const reader = new FileReader();
   reader.onload = () => {
     try {
-      const song = importSongFromMusicXML(reader.result, capturedInstrumentId);
+      const { song, unmatched } = importSongFromMusicXML(reader.result, capturedInstrumentId);
+      if (unmatched.length) {
+        // Notes that do not belong to the instrument are dropped; tell the
+        // person before saving so they can decide what to do with the song.
+        const ok = confirm(tFill('{n} notes in this song could not be matched to your instrument and will be skipped. Import anyway?', { n: unmatched.length }));
+        if (!ok) return;
+      }
       showToast(tFill('Imported "{name}"', { name: song.noteName }));
       render();
     } catch (err) {
