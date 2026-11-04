@@ -3395,6 +3395,8 @@ function render() {
     });
   }
   renderToolWidget();
+  const _logoFixed = document.getElementById('app-logo-fixed');
+  if (_logoFixed) _logoFixed.style.display = (APP.screen === 'select') ? 'none' : 'block';
 }
 
 // ── PLAY PHASE SEQUENCE ─────────────────────────────────────────────────
