@@ -1,0 +1,11 @@
+{
+  "name": "preludio-strings",
+  "version": "2.0.0",
+  "private": true,
+  "type": "commonjs",
+  "description": "First notes on your string instrument — fingerings, notes, and your first sounds.",
+  "scripts": {
+    "test": "node test-curriculum.js && node test-app.js && node test-graphics.js && node test-musicxml.js && node test-i18n.js && node test-i18n-ui.js",
+    "test:all": "node test-curriculum.js && node test-app.js && node test-graphics.js && node test-musicxml.js && node test-i18n.js && node test-i18n-ui.js"
+  }
+}

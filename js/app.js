@@ -3217,6 +3217,25 @@ function renderReferenceOverlay() {
 // ── SIGHT-READING GAME ─────────────────────────────────────────────────────
 function renderGameScreen() {
   const state = APP.game || {};
+  if (!state || state.phase === 'intro') {
+    return `
+      <div class="screen active game-screen game-intro">
+        <div class="game-intro-hero">
+          <div class="game-intro-icon">\u{1F440}</div>
+          <div class="game-title">${t('Sight Reading')}</div>
+          <div class="game-intro-sub">${t('Name the note on the staff as fast as you can. You have 30 seconds.')}</div>
+        </div>
+        <div class="game-intro-how">
+          <div class="game-intro-step"><span class="game-intro-num">1</span>${t('A note appears on the staff.')}</div>
+          <div class="game-intro-step"><span class="game-intro-num">2</span>${t('Tap the matching note name.')}</div>
+          <div class="game-intro-step"><span class="game-intro-num">3</span>${t('Score as many as you can in 30 seconds.')}</div>
+        </div>
+        <div class="game-intro-actions">
+          <button class="btn btn-primary btn-wide" data-action="game-start">${t('Start')}</button>
+          <button class="btn btn-secondary btn-wide" data-action="close-game">${t('Back')}</button>
+        </div>
+      </div>`;
+  }
   const score = state.score || 0;
   const total = state.total || 0;
   const timeLeft = (state.timeLeft === undefined) ? 30 : state.timeLeft;
@@ -3265,6 +3284,7 @@ function initGame() {
   const pool = learned.length >= 4 ? learned : (inst.lessons || []).filter(l => !isReviewLesson(l) && !isSongLesson(l));
   const GAME_DURATION = 30;
   APP.game = {
+    phase: 'playing',
     score: 0,
     total: 0,
     timeLeft: GAME_DURATION,
@@ -4052,8 +4072,13 @@ function handleAction(action, el) {
     // ── Sight-reading game ────────────────────────────────────────────
     case 'open-game':
       APP.screen = 'game';
+      APP.game = { phase: 'intro' };
       render();
+      break;
+
+    case 'game-start':
       initGame();
+      render();
       break;
 
     case 'close-game': {
