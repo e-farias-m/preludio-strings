@@ -22,6 +22,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      - name: Bump service worker cache
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          sed -i "s/^const CACHE = .*/const CACHE = 'preludio-strings-${SHA}';/" sw.js
+          grep '^const CACHE' sw.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
