@@ -1032,3 +1032,8 @@ TRANSLATIONS.fr = {
   "{correct} of {total} on first try": "{correct} sur {total} du premier coup",
   "correct": "correctes",
 };
+
+const PT_WELCOME = { "Welcome!": "Bem-vindo!" };
+Object.assign(TRANSLATIONS.pt, PT_WELCOME);
+const FR_WELCOME = { "Welcome!": "Bienvenue !" };
+Object.assign(TRANSLATIONS.fr, FR_WELCOME);
