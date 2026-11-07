@@ -1458,7 +1458,7 @@ function showNamePrompt() {
   overlay.innerHTML = translateHtml(`
     <div class="name-modal">
       <div style="display:flex;justify-content:flex-end;width:100%"><button class="theme-toggle" data-action="name-toggle-language" title="${t('Language')}">${getLang() === 'pt' ? 'PT' : getLang() === 'fr' ? 'FR' : 'EN'}</button></div>
-      <div class="name-modal-icon">🎵</div>
+      <div class="name-modal-icon"><img class="wordmark-logo-full" src="logo.svg" alt="Preludio Strings" style="height:56px" /></div>
       <div class="name-modal-title">${t('Welcome to Preludio Strings!')}</div>
       <div class="name-modal-sub">${t("What's your name?")}</div>
       <input type="text" class="name-input" placeholder="${t('Your name...')}" maxlength="50" autocomplete="off" />
