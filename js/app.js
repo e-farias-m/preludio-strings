@@ -696,7 +696,7 @@ function detectPitch(buffer, sampleRate) {
   if (peak < 0.02 || Math.sqrt(energy / size) < 0.01) return -1;
 
   const minLag = Math.max(2, Math.floor(sampleRate / 2000));
-  const maxLag = Math.min(size - 2, Math.ceil(sampleRate / 40));
+  const maxLag = Math.min(size - 2, Math.ceil(sampleRate / 60));
   if (maxLag <= minLag) return -1;
 
   // Prefix energy turns the normalisation denominator into an O(1) lookup.
@@ -751,6 +751,7 @@ function freqToNoteInfo(freq, noteLessons) {
     const cents = 1200 * Math.log2(freq / n.freq);
     if (best === null || Math.abs(cents) < Math.abs(best.cents)) best = { note: n, cents };
   });
+  if (best && Math.abs(best.cents) > 600) return null;
   return best;
 }
 
@@ -3599,6 +3600,9 @@ function startTuner() {
     if (!APP.tuner || !APP.tuner.running) { stream.getTracks().forEach(tr => tr.stop()); return; }
     t.stream = stream;
     t.ctx = new Ctx();
+    if (t.ctx.state === 'suspended' && typeof t.ctx.resume === 'function') {
+      t.ctx.resume().catch(() => {});
+    }
     const source = t.ctx.createMediaStreamSource(stream);
     const analyser = t.ctx.createAnalyser();
     analyser.fftSize = 2048;
