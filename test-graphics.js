@@ -278,7 +278,7 @@ for (const inst of Object.values(CURRICULUM)) {
 {
   const heads = svg => (svg.match(/<ellipse/g) || []).length;
   const headAt = (svg, i) => (svg.match(/<ellipse[^>]*>/g) || [])[i];
-  const stems = svg => (svg.match(/<line x1="[^"]*" y1="[^"]*" x2="[^"]*" y2="[^"]*" stroke="var\(--dg-ink\)" stroke-width="1.2"\/>/g) || []).length;
+  const stems = svg => (svg.match(/<line x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)" stroke="var\(--dg-ink\)" stroke-width="1.0"\/>/g) || []).filter(l => { const m = l.match(/x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)"/); return m[1] === m[3] && Math.abs(parseFloat(m[2]) - parseFloat(m[4])) < 40; }).length;
   const notes = [
     { pos: 0, accidental: null, duration: 1 },
     { pos: 2, accidental: null, duration: 2 },
@@ -296,10 +296,10 @@ for (const inst of Object.values(CURRICULUM)) {
 // ── Melody staff shows 4/4 and places bar lines on the beats ───────────────
 {
   const barLines = svg => {
-    const lines = svg.match(/<line x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)" stroke="var\(--dg-ink\)" stroke-width="(1(?:\.0)?|3\.5)"/g) || [];
+    const lines = svg.match(/<line x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)" stroke="var\(--dg-ink\)" stroke-width="(1(?:\.0)?|3(?:\.0|\.5)?)"/g) || [];
     return lines.filter(l => {
       const m = l.match(/x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)"/);
-      return m[1] === m[3] && m[2] !== m[4];
+      return m[1] === m[3] && Math.abs(parseFloat(m[2]) - parseFloat(m[4])) >= 40 && m[2] !== m[4];
     }).length;
   };
   const q = n => Array.from({ length: n }, () => ({ pos: 2, accidental: null, duration: 1 }));
@@ -319,7 +319,7 @@ for (const inst of Object.values(CURRICULUM)) {
     'a half note is never split by a bar line');
   // The closing bar line of the tune is thick; a line that only ends a system
   // stays thin, so a single-bar tune still gets its final (thick) bar line.
-  check(Graphics.melodySVG({ notes: q(4), accentColor: '#e0a020' }).includes('stroke-width="3.5"'),
+  check(/stroke-width="3(?:\.0)?"/.test(Graphics.melodySVG({ notes: q(4), accentColor: '#e0a020' })),
     'the closing bar line of a tune is thick');
   // A key signature (here, one sharp) is drawn to the right of the clef.
   check(Graphics.melodySVG({ notes: q(4), keySig: 1, accentColor: '#e0a020' }).includes('\u266F'),
@@ -339,13 +339,13 @@ for (const inst of Object.values(CURRICULUM)) {
   const q = n => Array.from({ length: n }, () => ({ pos: 2, accidental: null, duration: 1 }));
   const base = { notes: q(4), accentColor: '#e0a020' };
   const withRepeats = Graphics.melodySVG({ ...base, repeatStart: true, repeatEnd: true });
-  check((withRepeats.match(/r="1.5"/g) || []).length >= 4, 'start and end repeat signs draw repeat dots');
+  check((withRepeats.match(/r="1.2"/g) || []).length >= 4, 'start and end repeat signs draw repeat dots');
   const withDyn = Graphics.melodySVG({ ...base, dynamics: [{ index: 0, text: 'f' }] });
   check(withDyn.includes('>f</text>'), 'a dynamic marking is drawn below the staff');
   const withArt = Graphics.melodySVG({ ...base, articulations: [{ index: 0, type: 'staccato' }] });
-  check(withArt.includes('r="1.6"'), 'a staccato articulation dot is drawn');
+  check(withArt.includes('r="1.3"'), 'a staccato articulation dot is drawn');
   const withSlur = Graphics.melodySVG({ notes: q(2), accentColor: '#e0a020', slurs: [{ from: 0, to: 1 }] });
-  check(withSlur.includes('stroke-width="1.2"') && withSlur.includes(' Q'), 'a slur arc is drawn between notes');
+  check(withSlur.includes('stroke-width="1.0"') && withSlur.includes(' Q'), 'a slur arc is drawn between notes');
 }
 
 if (failures.length) console.log(failures.join('\n'));
