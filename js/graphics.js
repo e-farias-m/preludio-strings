@@ -356,7 +356,7 @@ const Graphics = (() => {
           svg += `<line x1="${bx}" y1="${y(8)}" x2="${bx}" y2="${y(0)}" stroke="${INK}" stroke-width="1.0"/>`;
         }
 
-        if (lit) svg += `<circle cx="${x}" cy="${noteY}" r="14" fill="${accentColor}" opacity="0.18"/>`;
+        if (lit) svg += `<circle cx="${x}" cy="${noteY}" r="15.5" fill="${accentColor}" opacity="0.18"/>`;
         if (gap > 0) {
           // A rest stands for the gap, drawn from the engraved Bravura rest
           // glyph — the same notation a human arranger would write.
@@ -365,40 +365,40 @@ const Graphics = (() => {
           const up = note.pos <= 4;
           noteInfo[g] = { x, noteY, y, up, pos: note.pos, system: s };
           ledgerPositions(note.pos).forEach(p => {
-            svg += `<line x1="${x - 10}" y1="${y(p)}" x2="${x + 10}" y2="${y(p)}" stroke="${color}" stroke-width="1.1"/>`;
+            svg += `<line x1="${x - 11}" y1="${y(p)}" x2="${x + 11}" y2="${y(p)}" stroke="${color}" stroke-width="1.2"/>`;
           });
           if (note.accidental) {
-            svg += `<text x="${x - 16}" y="${noteY + 6}" font-size="18" fill="${color}" font-family="Georgia, serif">${note.accidental}</text>`;
+            svg += `<text x="${x - 18}" y="${noteY + 7}" font-size="20" fill="${color}" font-family="Georgia, serif">${note.accidental}</text>`;
           }
           // Hollow noteheads read clearly against the staff, so they skip the dark
           // separating ring a filled head needs; both keep the same rotation.
           const headFill = open ? 'none' : color;
           const headStroke = open ? color : OPEN;
-          const headStrokeW = open ? 1.7 : 1.4;
-          svg += `<ellipse cx="${x}" cy="${noteY}" rx="6.0" ry="3.8" fill="${headFill}" stroke="${headStroke}" stroke-width="${headStrokeW}" transform="rotate(-18 ${x} ${noteY})"/>`;
+          const headStrokeW = open ? 1.9 : 1.5;
+          svg += `<ellipse cx="${x}" cy="${noteY}" rx="6.6" ry="4.2" fill="${headFill}" stroke="${headStroke}" stroke-width="${headStrokeW}" transform="rotate(-18 ${x} ${noteY})"/>`;
           // A dotted value (dotted quarter = 1.5, dotted half = 3) carries a dot.
           if (duration === 1.5 || duration === 3) {
-            svg += `<circle cx="${x + 11}" cy="${noteY}" r="1.6" fill="${color}"/>`;
+            svg += `<circle cx="${x + 12}" cy="${noteY}" r="1.8" fill="${color}"/>`;
           }
           if (stemmed) {
             // Notes that belong to a beam group get their stem from the beam
             // itself, so a beamed pair never draws two overlapping stems.
             const inBeam = sysBeamGroups.some(gr => gr.includes(g));
             if (!inBeam) {
-              const stemX = up ? x + 5.6 : x - 5.6;
-              const stemEnd = up ? noteY - 35 : noteY + 35;
-              svg += `<line x1="${stemX}" y1="${noteY}" x2="${stemX}" y2="${stemEnd}" stroke="${color}" stroke-width="1.4"/>`;
+              const stemX = up ? x + 6.2 : x - 6.2;
+              const stemEnd = up ? noteY - 38.5 : noteY + 38.5;
+              svg += `<line x1="${stemX}" y1="${noteY}" x2="${stemX}" y2="${stemEnd}" stroke="${color}" stroke-width="1.5"/>`;
             }
           }
           // Articulations: placed above or below the note depending on stem direction.
           (articulations || []).filter(a => a && a.index === g).forEach(a => {
             const placeAbove = !up;
-            const ay = placeAbove ? (y(Math.max(note.pos, 8)) - 12) : (y(Math.min(note.pos, 0)) + 14);
-            if (a.type === 'staccato') svg += `<circle cx="${x}" cy="${ay}" r="2" fill="${color}"/>`;
-            else if (a.type === 'tenuto') svg += `<line x1="${x - 6}" y1="${ay}" x2="${x + 6}" y2="${ay}" stroke="${color}" stroke-width="1.7"/>`;
-            else if (a.type === 'accent') svg += `<path d="M${x - 6} ${ay - 4} L${x + 6} ${ay} L${x - 6} ${ay + 4}" fill="none" stroke="${color}" stroke-width="1.6"/>`;
-            else if (a.type === 'marcato') svg += `<path d="M${x - 5} ${ay + 5} L${x} ${ay - 5} L${x + 5} ${ay + 5}" fill="none" stroke="${color}" stroke-width="1.6"/>`;
-            else if (a.type === 'fermata') svg += `<path d="M${x - 9} ${ay} Q${x} ${ay - 10} ${x + 9} ${ay}" fill="none" stroke="${color}" stroke-width="1.6"/><circle cx="${x}" cy="${ay - 1}" r="1.7" fill="${color}"/>`;
+            const ay = placeAbove ? (y(Math.max(note.pos, 8)) - 13) : (y(Math.min(note.pos, 0)) + 15);
+            if (a.type === 'staccato') svg += `<circle cx="${x}" cy="${ay}" r="2.2" fill="${color}"/>`;
+            else if (a.type === 'tenuto') svg += `<line x1="${x - 6.5}" y1="${ay}" x2="${x + 6.5}" y2="${ay}" stroke="${color}" stroke-width="1.9"/>`;
+            else if (a.type === 'accent') svg += `<path d="M${x - 6.5} ${ay - 4.5} L${x + 6.5} ${ay} L${x - 6.5} ${ay + 4.5}" fill="none" stroke="${color}" stroke-width="1.8"/>`;
+            else if (a.type === 'marcato') svg += `<path d="M${x - 5.5} ${ay + 5.5} L${x} ${ay - 5.5} L${x + 5.5} ${ay + 5.5}" fill="none" stroke="${color}" stroke-width="1.8"/>`;
+            else if (a.type === 'fermata') svg += `<path d="M${x - 10} ${ay} Q${x} ${ay - 11} ${x + 10} ${ay}" fill="none" stroke="${color}" stroke-width="1.8"/><circle cx="${x}" cy="${ay - 1}" r="1.9" fill="${color}"/>`;
           });
           // Dynamics: placed below the staff near the note.
           (dynamics || []).filter(d => d && d.index === g).forEach((d, di) => {
@@ -418,7 +418,7 @@ const Graphics = (() => {
           const x = leftX + ((starts[g] - sysBase) / sysSpan) * (rightX - leftX);
           const noteY = y(n.pos);
           const up = n.pos <= 4;
-          return [x + (up ? 5.6 : -5.6), up ? noteY - 35 : noteY + 35];
+          return [x + (up ? 6.2 : -6.2), up ? noteY - 38.5 : noteY + 38.5];
         };
         const [x1, y1] = stemEndOf(first);
         const [x2, y2] = stemEndOf(last);
@@ -426,9 +426,9 @@ const Graphics = (() => {
         if (gr.length === 2) {
           const midX = (x1 + x2) / 2;
           const midY = (y1 + y2) / 2;
-          svg += `<path d="M${x1} ${y1} Q${midX} ${midY} ${x2} ${y2}" fill="none" stroke="${color}" stroke-width="2.3" stroke-linecap="round"/>`;
+          svg += `<path d="M${x1} ${y1} Q${midX} ${midY} ${x2} ${y2}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round"/>`;
         } else {
-          svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="3.6"/>`;
+          svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="4.0"/>`;
         }
       });
 
@@ -459,10 +459,10 @@ const Graphics = (() => {
       const b = noteInfo[sl.to];
       if (!a || !b || a.system !== b.system) return;
       const placeAbove = !(a.up || b.up);
-      const y1 = placeAbove ? Math.min(a.noteY, b.noteY) - 12 : Math.max(a.noteY, b.noteY) + 12;
+      const y1 = placeAbove ? Math.min(a.noteY, b.noteY) - 13 : Math.max(a.noteY, b.noteY) + 13;
       const midX = (a.x + b.x) / 2;
-      const bow = placeAbove ? -12 : 12;
-      svg += `<path d="M${a.x} ${y1} Q${midX} ${y1 + bow} ${b.x} ${y1}" fill="none" stroke="${INK}" stroke-width="1.4"/>`;
+      const bow = placeAbove ? -13 : 13;
+      svg += `<path d="M${a.x} ${y1} Q${midX} ${y1 + bow} ${b.x} ${y1}" fill="none" stroke="${INK}" stroke-width="1.5"/>`;
     });
 
     svg += `</svg>`;
