@@ -228,9 +228,10 @@ const Graphics = (() => {
       return `<path class="rest rest-${kind}" d="${glyph.d}" fill="${color}" transform="translate(${tx.toFixed(2)} ${y(ref).toFixed(2)}) scale(${s.toFixed(5)} ${(-s).toFixed(5)})"/>`;
     };
     const VB_W = 360;
-    // Each system leaves room for the clef, which overhangs the staff.
-    const SYSTEM_H = 180;
-    const TOP_LINE_Y = 64;
+    // Each system leaves room for the clef and measure numbers, while keeping
+    // the staff compact so it doesn't dominate the whole page.
+    const SYSTEM_H = 110;
+    const TOP_LINE_Y = 38;
     const sigX = 100;          // time signature, centred
     const leftX = 120;         // first note sits past the enlarged clef + time signature
     const lineStartX = 24;
@@ -278,7 +279,7 @@ const Graphics = (() => {
       curBarNums.push(bi);
     });
     if (current.length) { systems.push(current); systemBarNums.push(curBarNums); }
-    const VB_H = systems.length * SYSTEM_H + 8;
+    const VB_H = systems.length * SYSTEM_H + 16;
     const renderH = width * (VB_H / VB_W);
 
     let svg = `<svg viewBox="0 0 ${VB_W} ${VB_H}" width="${width}" height="${renderH.toFixed(1)}" xmlns="http://www.w3.org/2000/svg">`;
