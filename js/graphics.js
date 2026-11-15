@@ -210,7 +210,7 @@ const Graphics = (() => {
   // The note at `highlightIndex` is drawn in the accent colour with a soft halo
   // so the tune reads like sheet music with the student's current note called
   // out; the rest stay in ink.
-  function melodySVG({ notes = [], highlightIndex = -1, clef = 'treble', accentColor = 'var(--accent-warm)', width = 320, perSystem = 6, beatsPerBar = 4, timeSig = null, keySig = 0, bpm = null, pickup = 0, gaps = [] }) {
+  function melodySVG({ notes = [], highlightIndex = -1, clef = 'treble', accentColor = 'var(--accent-warm)', width = 320, perSystem = 6, beatsPerBar = 4, timeSig = null, keySig = 0, bpm = null, pickup = 0, gaps = [], repeatStart = false, repeatEnd = false, dynamics = [], articulations = [], slurs = [] }) {
     if (!notes.length) return '';
     // Rest outlines are Bravura's (SIL OFL, see fonts/OFL.txt), like the clefs.
     const REST_GLYPH = {
@@ -283,6 +283,7 @@ const Graphics = (() => {
     const renderH = width * (VB_H / VB_W);
 
     let svg = `<svg viewBox="0 0 ${VB_W} ${VB_H}" width="${width}" height="${renderH.toFixed(1)}" xmlns="http://www.w3.org/2000/svg">`;
+    const noteInfo = {};
 
     systems.forEach((systemNotes, s) => {
       const topLineY = TOP_LINE_Y + s * SYSTEM_H;
@@ -372,6 +373,8 @@ const Graphics = (() => {
           // glyph — the same notation a human arranger would write.
           svg += restSVG(x, y, gap, color);
         } else {
+          const up = note.pos <= 4;
+          noteInfo[g] = { x, noteY, y, up, pos: note.pos, system: s };
           ledgerPositions(note.pos).forEach(p => {
             svg += `<line x1="${x - 10}" y1="${y(p)}" x2="${x + 10}" y2="${y(p)}" stroke="${color}" stroke-width="1.3"/>`;
           });
@@ -393,12 +396,25 @@ const Graphics = (() => {
             // itself, so a beamed pair never draws two overlapping stems.
             const inBeam = sysBeamGroups.some(gr => gr.includes(g));
             if (!inBeam) {
-              const stemUp = note.pos <= 4;
-              const stemX = stemUp ? x + 6 : x - 6;
-              const stemEnd = stemUp ? noteY - 34 : noteY + 34;
+              const stemX = up ? x + 6 : x - 6;
+              const stemEnd = up ? noteY - 34 : noteY + 34;
               svg += `<line x1="${stemX}" y1="${noteY}" x2="${stemX}" y2="${stemEnd}" stroke="${color}" stroke-width="1.4"/>`;
             }
           }
+          // Articulations: placed above or below the note depending on stem direction.
+          (articulations || []).filter(a => a && a.index === g).forEach(a => {
+            const placeAbove = !up;
+            const ay = placeAbove ? (y(Math.max(note.pos, 8)) - 10) : (y(Math.min(note.pos, 0)) + 12);
+            if (a.type === 'staccato') svg += `<circle cx="${x}" cy="${ay}" r="1.6" fill="${color}"/>`;
+            else if (a.type === 'tenuto') svg += `<line x1="${x - 5}" y1="${ay}" x2="${x + 5}" y2="${ay}" stroke="${color}" stroke-width="1.4"/>`;
+            else if (a.type === 'accent') svg += `<path d="M${x - 5} ${ay - 3} L${x + 5} ${ay} L${x - 5} ${ay + 3}" fill="none" stroke="${color}" stroke-width="1.3"/>`;
+            else if (a.type === 'marcato') svg += `<path d="M${x - 4} ${ay + 4} L${x} ${ay - 4} L${x + 4} ${ay + 4}" fill="none" stroke="${color}" stroke-width="1.3"/>`;
+            else if (a.type === 'fermata') svg += `<path d="M${x - 7} ${ay} Q${x} ${ay - 8} ${x + 7} ${ay}" fill="none" stroke="${color}" stroke-width="1.3"/><circle cx="${x}" cy="${ay - 1}" r="1.4" fill="${color}"/>`;
+          });
+          // Dynamics: placed below the staff near the note.
+          (dynamics || []).filter(d => d && d.index === g).forEach((d, di) => {
+            svg += `<text x="${x}" y="${y(0) + 24 + di * 10}" font-size="13" font-style="italic" font-weight="700" text-anchor="middle" font-family="Georgia, serif" fill="${INK}">${String(d.text || '')}</text>`;
+          });
         }
       });
 
@@ -429,9 +445,36 @@ const Graphics = (() => {
       });
 
       // Bar line at the end of every system; the closing bar line of the piece
-      // is thick, the line that only ends a system stays thin.
+      // is thick, the line that only ends a system stays thin. End-repeat adds
+      // dots + thin + thick.
       const isLastSystem = s === systems.length - 1;
-      svg += `<line x1="${rightX}" y1="${y(8)}" x2="${rightX}" y2="${y(0)}" stroke="${INK}" stroke-width="${isLastSystem ? 3.5 : 1.3}"/>`;
+      if (isLastSystem && repeatEnd) {
+        svg += `<circle cx="${rightX - 8}" cy="${y(5)}" r="1.5" fill="${INK}"/><circle cx="${rightX - 8}" cy="${y(3)}" r="1.5" fill="${INK}"/>`;
+        svg += `<line x1="${rightX - 4}" y1="${y(8)}" x2="${rightX - 4}" y2="${y(0)}" stroke="${INK}" stroke-width="1.3"/>`;
+        svg += `<line x1="${rightX}" y1="${y(8)}" x2="${rightX}" y2="${y(0)}" stroke="${INK}" stroke-width="3.5"/>`;
+      } else {
+        svg += `<line x1="${rightX}" y1="${y(8)}" x2="${rightX}" y2="${y(0)}" stroke="${INK}" stroke-width="${isLastSystem ? 3.5 : 1.3}"/>`;
+      }
+      // Start-repeat at the beginning of the first system.
+      if (s === 0 && repeatStart) {
+        const rx = lineStartX + 2;
+        svg += `<line x1="${rx}" y1="${y(8)}" x2="${rx}" y2="${y(0)}" stroke="${INK}" stroke-width="3.5"/>`;
+        svg += `<line x1="${rx + 4}" y1="${y(8)}" x2="${rx + 4}" y2="${y(0)}" stroke="${INK}" stroke-width="1.3"/>`;
+        svg += `<circle cx="${rx + 8}" cy="${y(5)}" r="1.5" fill="${INK}"/><circle cx="${rx + 8}" cy="${y(3)}" r="1.5" fill="${INK}"/>`;
+      }
+    });
+
+    // Slurs: smooth arcs connecting two noteheads (same-system only).
+    (slurs || []).forEach(sl => {
+      if (!sl) return;
+      const a = noteInfo[sl.from];
+      const b = noteInfo[sl.to];
+      if (!a || !b || a.system !== b.system) return;
+      const placeAbove = !(a.up || b.up);
+      const y1 = placeAbove ? Math.min(a.noteY, b.noteY) - 10 : Math.max(a.noteY, b.noteY) + 10;
+      const midX = (a.x + b.x) / 2;
+      const bow = placeAbove ? -10 : 10;
+      svg += `<path d="M${a.x} ${y1} Q${midX} ${y1 + bow} ${b.x} ${y1}" fill="none" stroke="${INK}" stroke-width="1.2"/>`;
     });
 
     svg += `</svg>`;

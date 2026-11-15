@@ -337,6 +337,20 @@ for (const inst of Object.values(CURRICULUM)) {
   check(!Graphics.melodySVG({ notes: q(4), accentColor: '#e0a020' }).includes('>2</text>'), 'a one-bar tune draws only measure 1');
 }
 
+// ── Optional markings: repeats, articulations, dynamics, slurs ─────────────
+{
+  const q = n => Array.from({ length: n }, () => ({ pos: 2, accidental: null, duration: 1 }));
+  const base = { notes: q(4), accentColor: '#e0a020' };
+  const withRepeats = Graphics.melodySVG({ ...base, repeatStart: true, repeatEnd: true });
+  check((withRepeats.match(/r="1.5"/g) || []).length >= 4, 'start and end repeat signs draw repeat dots');
+  const withDyn = Graphics.melodySVG({ ...base, dynamics: [{ index: 0, text: 'f' }] });
+  check(withDyn.includes('>f</text>'), 'a dynamic marking is drawn below the staff');
+  const withArt = Graphics.melodySVG({ ...base, articulations: [{ index: 0, type: 'staccato' }] });
+  check(withArt.includes('r="1.6"'), 'a staccato articulation dot is drawn');
+  const withSlur = Graphics.melodySVG({ notes: q(2), accentColor: '#e0a020', slurs: [{ from: 0, to: 1 }] });
+  check(withSlur.includes('stroke-width="1.2"') && withSlur.includes(' Q'), 'a slur arc is drawn between notes');
+}
+
 if (failures.length) console.log(failures.join('\n'));
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
