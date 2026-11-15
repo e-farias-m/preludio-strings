@@ -327,6 +327,9 @@ for (const inst of Object.values(CURRICULUM)) {
   // A pair of eighth notes gets a beam instead of two bare stems.
   check(Graphics.melodySVG({ notes: [{ pos: 2, duration: 0.5 }, { pos: 3, duration: 0.5 }], accentColor: '#e0a020' }).includes('<path d="M'),
     'a pair of eighth notes is beamed');
+  // Rests come from the engraved Bravura rest glyph, not a fake notehead.
+  check(Graphics.melodySVG({ notes: [{ pos: 2, duration: 1 }], gaps: [1], accentColor: '#e0a020' }).includes('class="rest rest-quarter"'),
+    'a quarter rest is drawn from the engraved rest glyph');
 }
 
 if (failures.length) console.log(failures.join('\n'));

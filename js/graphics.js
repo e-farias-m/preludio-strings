@@ -212,6 +212,21 @@ const Graphics = (() => {
   // out; the rest stay in ink.
   function melodySVG({ notes = [], highlightIndex = -1, clef = 'treble', accentColor = 'var(--accent-warm)', width = 320, perSystem = 6, beatsPerBar = 4, timeSig = null, keySig = 0, pickup = 0, gaps = [] }) {
     if (!notes.length) return '';
+    // Rest outlines are Bravura's (SIL OFL, see fonts/OFL.txt), like the clefs.
+    const REST_GLYPH = {
+      quarter: { x_min: 1, x_max: 270, d: 'M112 -55 C174 -141 135 -84 156 -111 C183 -161 177 -147 183 -158 C181 -167 183 -163 183 -166 C166 -174 179 -173 173 -174 C143 -170 160 -174 148 -171 C137 -170 141 -170 138 -170 L125 -166 C1 -304 50 -166 1 -233 C168 -527 1 -376 63 -446 C206 -540 180 -536 194 -540 C228 -531 216 -540 226 -537 C230 -521 229 -527 230 -524 C207 -487 230 -508 219 -497 C170 -435 189 -487 173 -448 C164 -397 166 -423 164 -410 C255 -292 164 -338 194 -292 C369 -317 297 -292 344 -308 L370 -318 C382 -320 376 -320 379 -320 C389 -314 386 -320 389 -318 C336 -232 389 -297 351 -249 C236 -32 281 -166 236 -112 C236 -27 236 -30 236 -29 L238 -17 C238 -13 238 -16 238 -14 C333 199 243 71 295 140 C338 220 337 206 338 213 C333 248 338 235 333 248 C95 526 333 248 120 501 C69 537 88 533 78 537 C40 507 55 537 40 527 C46 484 40 500 42 492 C134 291 52 468 134 395 C48 108 134 238 112 176 C27 66 33 94 27 78 C42 32 27 46 42 32 Z' },
+      eighth: { x_min: 0, x_max: 247, d: 'M193 154 C96 251 193 207 150 251 C0 154 43 251 0 207 C39 81 0 124 17 98 C117 56 62 65 89 56 C173 66 137 56 157 60 C225 88 193 72 206 78 C232 89 228 89 230 89 C239 76 238 89 239 84 C238 60 239 72 239 66 C104 -343 233 39 130 -248 C145 -361 104 -360 137 -361 C196 -347 161 -361 181 -359 C341 161 200 -344 341 161 C356 217 347 187 354 210 C338 240 356 232 341 239 C323 235 336 240 331 240 C193 140 312 226 240 140 Z' },
+      half: { x_min: 0, x_max: 282, d: 'M406 35 L406 167 C369 204 406 189 389 204 L37 204 C0 167 16 204 0 189 L0 35 C37 -3 0 14 16 -3 L369 -3 C406 35 389 -3 406 14 Z' },
+      whole: { x_min: 0, x_max: 282, d: 'M406 -157 L406 -24 C369 13 406 -3 389 13 L37 13 C0 -24 16 13 0 -3 L0 -157 C37 -194 0 -177 16 -194 L369 -194 C406 -157 389 -194 406 -177 Z' },
+    };
+    const restSVG = (x, y, dur, color) => {
+      const kind = dur >= 4 ? 'whole' : dur >= 2 ? 'half' : dur >= 1 ? 'quarter' : 'eighth';
+      const glyph = REST_GLYPH[kind];
+      const ref = kind === 'whole' ? 6 : 4;
+      const s = (STAFF_SPACE / 250) * 0.8;
+      const tx = x - ((glyph.x_min + glyph.x_max) / 2) * s;
+      return `<path class="rest rest-${kind}" d="${glyph.d}" fill="${color}" transform="translate(${tx.toFixed(2)} ${y(ref).toFixed(2)}) scale(${s.toFixed(5)} ${(-s).toFixed(5)})"/>`;
+    };
     const VB_W = 360;
     // Each system leaves room for the clef, which overhangs the staff.
     const SYSTEM_H = 180;
@@ -333,10 +348,9 @@ const Graphics = (() => {
 
         if (lit) svg += `<circle cx="${x}" cy="${noteY}" r="13" fill="${accentColor}" opacity="0.18"/>`;
         if (gap > 0) {
-          // A rest stands for the gap: the same head its value calls for, with no
-          // ledger line and no stem.
-          const restOpen = gap >= 2;
-          svg += `<ellipse cx="${x}" cy="${noteY}" rx="6.2" ry="4.6" fill="${restOpen ? 'none' : color}" stroke="${restOpen ? color : OPEN}" stroke-width="${restOpen ? 1.8 : 1.2}" transform="rotate(-18 ${x} ${noteY})"/>`;
+          // A rest stands for the gap, drawn from the engraved Bravura rest
+          // glyph — the same notation a human arranger would write.
+          svg += restSVG(x, y, gap, color);
         } else {
           ledgerPositions(note.pos).forEach(p => {
             svg += `<line x1="${x - 10}" y1="${y(p)}" x2="${x + 10}" y2="${y(p)}" stroke="${color}" stroke-width="1.3"/>`;
