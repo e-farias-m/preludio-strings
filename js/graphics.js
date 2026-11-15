@@ -351,7 +351,7 @@ const Graphics = (() => {
           svg += `<line x1="${bx}" y1="${y(8)}" x2="${bx}" y2="${y(0)}" stroke="${INK}" stroke-width="1.3"/>`;
         }
 
-        if (lit) svg += `<circle cx="${x}" cy="${noteY}" r="13" fill="${accentColor}" opacity="0.18"/>`;
+        if (lit) svg += `<circle cx="${x}" cy="${noteY}" r="11" fill="${accentColor}" opacity="0.18"/>`;
         if (gap > 0) {
           // A rest stands for the gap, drawn from the engraved Bravura rest
           // glyph — the same notation a human arranger would write.
@@ -367,11 +367,11 @@ const Graphics = (() => {
           // separating ring a filled head needs; both keep the same rotation.
           const headFill = open ? 'none' : color;
           const headStroke = open ? color : OPEN;
-          const headStrokeW = open ? 1.8 : 1.2;
-          svg += `<ellipse cx="${x}" cy="${noteY}" rx="6.2" ry="4.6" fill="${headFill}" stroke="${headStroke}" stroke-width="${headStrokeW}" transform="rotate(-18 ${x} ${noteY})"/>`;
+          const headStrokeW = open ? 1.6 : 1.2;
+          svg += `<ellipse cx="${x}" cy="${noteY}" rx="4.8" ry="3.6" fill="${headFill}" stroke="${headStroke}" stroke-width="${headStrokeW}" transform="rotate(-18 ${x} ${noteY})"/>`;
           // A dotted value (dotted quarter = 1.5, dotted half = 3) carries a dot.
           if (duration === 1.5 || duration === 3) {
-            svg += `<circle cx="${x + 10}" cy="${noteY}" r="1.6" fill="${color}"/>`;
+            svg += `<circle cx="${x + 10}" cy="${noteY}" r="1.4" fill="${color}"/>`;
           }
           if (stemmed) {
             // Notes that belong to a beam group get their stem from the beam
@@ -381,7 +381,7 @@ const Graphics = (() => {
               const stemUp = note.pos <= 4;
               const stemX = stemUp ? x + 6 : x - 6;
               const stemEnd = stemUp ? noteY - 34 : noteY + 34;
-              svg += `<line x1="${stemX}" y1="${noteY}" x2="${stemX}" y2="${stemEnd}" stroke="${color}" stroke-width="1.6"/>`;
+              svg += `<line x1="${stemX}" y1="${noteY}" x2="${stemX}" y2="${stemEnd}" stroke="${color}" stroke-width="1.4"/>`;
             }
           }
         }
@@ -407,9 +407,9 @@ const Graphics = (() => {
         if (gr.length === 2) {
           const midX = (x1 + x2) / 2;
           const midY = (y1 + y2) / 2;
-          svg += `<path d="M${x1} ${y1} Q${midX} ${midY} ${x2} ${y2}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round"/>`;
+          svg += `<path d="M${x1} ${y1} Q${midX} ${midY} ${x2} ${y2}" fill="none" stroke="${color}" stroke-width="1.4" stroke-linecap="round"/>`;
         } else {
-          svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="3.5"/>`;
+          svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="3.0"/>`;
         }
       });
 

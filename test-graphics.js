@@ -278,7 +278,7 @@ for (const inst of Object.values(CURRICULUM)) {
 {
   const heads = svg => (svg.match(/<ellipse/g) || []).length;
   const headAt = (svg, i) => (svg.match(/<ellipse[^>]*>/g) || [])[i];
-  const stems = svg => (svg.match(/<line x1="[^"]*" y1="[^"]*" x2="[^"]*" y2="[^"]*" stroke="var\(--dg-ink\)" stroke-width="1.6"\/>/g) || []).length;
+  const stems = svg => (svg.match(/<line x1="[^"]*" y1="[^"]*" x2="[^"]*" y2="[^"]*" stroke="var\(--dg-ink\)" stroke-width="1.4"\/>/g) || []).length;
   const notes = [
     { pos: 0, accidental: null, duration: 1 },
     { pos: 2, accidental: null, duration: 2 },
