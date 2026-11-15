@@ -332,6 +332,9 @@ for (const inst of Object.values(CURRICULUM)) {
     'a quarter rest is drawn from the engraved rest glyph');
   // The song's written tempo is drawn as a marking above the staff.
   check(Graphics.melodySVG({ notes: [{ pos: 2, duration: 1 }], bpm: 100 }).includes('\u2669=100'), 'the song tempo is drawn above the staff');
+  // Measure numbers are drawn, one per bar, just after the barline.
+  check(Graphics.melodySVG({ notes: q(8), accentColor: '#e0a020' }).includes('>2</text>'), 'the second bar of a two-bar tune gets a measure number');
+  check(!Graphics.melodySVG({ notes: q(4), accentColor: '#e0a020' }).includes('>2</text>'), 'a one-bar tune draws only measure 1');
 }
 
 if (failures.length) console.log(failures.join('\n'));
