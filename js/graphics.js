@@ -262,23 +262,18 @@ const Graphics = (() => {
     });
 
     const systems = [];
-    const systemBarNums = [];
     let current = [];
     let currentCount = 0;
-    let curBarNums = [];
-    bars.forEach((bar, bi) => {
+    bars.forEach(bar => {
       if (currentCount > 0 && currentCount + bar.length > perSystem) {
         systems.push(current);
-        systemBarNums.push(curBarNums);
         current = [];
         currentCount = 0;
-        curBarNums = [];
       }
       bar.forEach(g => current.push(notes[g]));
       currentCount += bar.length;
-      curBarNums.push(bi);
     });
-    if (current.length) { systems.push(current); systemBarNums.push(curBarNums); }
+    if (current.length) systems.push(current);
     const VB_H = systems.length * SYSTEM_H + 16;
     const renderH = width * (VB_H / VB_W);
 
@@ -325,14 +320,6 @@ const Graphics = (() => {
       if (sysBase === Infinity) sysBase = 0;
       const sysSpan = sysEnd - sysBase || 1;
 
-      // Measure numbers: one per bar in this system, placed just after the barline.
-      const nums = systemBarNums[s];
-      for (let i = 0; i < nums.length; i++) {
-        const bn = nums[i];
-        const barStartX = leftX + ((bn * bpb - sysBase) / sysSpan) * (rightX - leftX);
-        const barEndX = (i + 1 < nums.length) ? (leftX + (((bn + 1) * bpb - sysBase) / sysSpan) * (rightX - leftX)) : rightX;
-        svg += `<text x="${barEndX}" y="${y(0) + 16}" font-size="12" font-weight="600" text-anchor="end" font-family="Georgia, serif" fill="${INK}">${bn + 1}</text>`;
-      }
 
       // Runs of eighth notes inside one beat share a beam — the same notation
       // a human arranger writes. A beam never crosses a bar line or a rest gap.
