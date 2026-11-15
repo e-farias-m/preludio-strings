@@ -278,7 +278,7 @@ for (const inst of Object.values(CURRICULUM)) {
 {
   const heads = svg => (svg.match(/<ellipse/g) || []).length;
   const headAt = (svg, i) => (svg.match(/<ellipse[^>]*>/g) || [])[i];
-  const stems = svg => (svg.match(/<line x1="[^"]*" y1="[^"]*" x2="[^"]*" y2="[^"]*" stroke="var\(--dg-ink\)" stroke-width="1.4"\/>/g) || []).length;
+  const stems = svg => (svg.match(/<line x1="[^"]*" y1="[^"]*" x2="[^"]*" y2="[^"]*" stroke="var\(--dg-ink\)" stroke-width="1.2"\/>/g) || []).length;
   const notes = [
     { pos: 0, accidental: null, duration: 1 },
     { pos: 2, accidental: null, duration: 2 },
@@ -296,7 +296,7 @@ for (const inst of Object.values(CURRICULUM)) {
 // ── Melody staff shows 4/4 and places bar lines on the beats ───────────────
 {
   const barLines = svg => {
-    const lines = svg.match(/<line x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)" stroke="var\(--dg-ink\)" stroke-width="(1\.3|3\.5)"/g) || [];
+    const lines = svg.match(/<line x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)" stroke="var\(--dg-ink\)" stroke-width="(1(?:\.0)?|3\.5)"/g) || [];
     return lines.filter(l => {
       const m = l.match(/x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)"/);
       return m[1] === m[3] && m[2] !== m[4];

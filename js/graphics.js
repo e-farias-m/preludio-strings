@@ -285,7 +285,7 @@ const Graphics = (() => {
       const y = pos => topLineY + (8 - pos) * HALF;
 
       for (let p = 0; p <= 8; p += 2) {
-        svg += `<line x1="${lineStartX}" y1="${y(p)}" x2="${rightX}" y2="${y(p)}" stroke="${INK}" stroke-width="1.3"/>`;
+        svg += `<line x1="${lineStartX}" y1="${y(p)}" x2="${rightX}" y2="${y(p)}" stroke="${INK}" stroke-width="1.0"/>`;
       }
       const clefName = CLEF_GLYPH[clef] ? clef : 'treble';
       const cmet = CLEF_GLYPH[clefName];
@@ -351,7 +351,7 @@ const Graphics = (() => {
         // Bar line just before this note when the previous note ended a bar.
         if (k > 0 && barOf[g] !== barOf[g - 1]) {
           const bx = x - ((rightX - leftX) / systemNotes.length) / 2;
-          svg += `<line x1="${bx}" y1="${y(8)}" x2="${bx}" y2="${y(0)}" stroke="${INK}" stroke-width="1.3"/>`;
+          svg += `<line x1="${bx}" y1="${y(8)}" x2="${bx}" y2="${y(0)}" stroke="${INK}" stroke-width="1.0"/>`;
         }
 
         if (lit) svg += `<circle cx="${x}" cy="${noteY}" r="11" fill="${accentColor}" opacity="0.18"/>`;
@@ -363,29 +363,29 @@ const Graphics = (() => {
           const up = note.pos <= 4;
           noteInfo[g] = { x, noteY, y, up, pos: note.pos, system: s };
           ledgerPositions(note.pos).forEach(p => {
-            svg += `<line x1="${x - 10}" y1="${y(p)}" x2="${x + 10}" y2="${y(p)}" stroke="${color}" stroke-width="1.3"/>`;
+            svg += `<line x1="${x - 8}" y1="${y(p)}" x2="${x + 8}" y2="${y(p)}" stroke="${color}" stroke-width="1.0"/>`;
           });
           if (note.accidental) {
-            svg += `<text x="${x - 15}" y="${noteY + 5}" font-size="18" fill="${color}" font-family="Georgia, serif">${note.accidental}</text>`;
+            svg += `<text x="${x - 13}" y="${noteY + 5}" font-size="15" fill="${color}" font-family="Georgia, serif">${note.accidental}</text>`;
           }
           // Hollow noteheads read clearly against the staff, so they skip the dark
           // separating ring a filled head needs; both keep the same rotation.
           const headFill = open ? 'none' : color;
           const headStroke = open ? color : OPEN;
-          const headStrokeW = open ? 1.6 : 1.2;
-          svg += `<ellipse cx="${x}" cy="${noteY}" rx="4.8" ry="3.6" fill="${headFill}" stroke="${headStroke}" stroke-width="${headStrokeW}" transform="rotate(-18 ${x} ${noteY})"/>`;
+          const headStrokeW = open ? 1.4 : 1.0;
+          svg += `<ellipse cx="${x}" cy="${noteY}" rx="4.6" ry="3.2" fill="${headFill}" stroke="${headStroke}" stroke-width="${headStrokeW}" transform="rotate(-18 ${x} ${noteY})"/>`;
           // A dotted value (dotted quarter = 1.5, dotted half = 3) carries a dot.
           if (duration === 1.5 || duration === 3) {
-            svg += `<circle cx="${x + 10}" cy="${noteY}" r="1.4" fill="${color}"/>`;
+            svg += `<circle cx="${x + 9}" cy="${noteY}" r="1.4" fill="${color}"/>`;
           }
           if (stemmed) {
             // Notes that belong to a beam group get their stem from the beam
             // itself, so a beamed pair never draws two overlapping stems.
             const inBeam = sysBeamGroups.some(gr => gr.includes(g));
             if (!inBeam) {
-              const stemX = up ? x + 6 : x - 6;
-              const stemEnd = up ? noteY - 34 : noteY + 34;
-              svg += `<line x1="${stemX}" y1="${noteY}" x2="${stemX}" y2="${stemEnd}" stroke="${color}" stroke-width="1.4"/>`;
+              const stemX = up ? x + 4.2 : x - 4.2;
+              const stemEnd = up ? noteY - 28 : noteY + 28;
+              svg += `<line x1="${stemX}" y1="${noteY}" x2="${stemX}" y2="${stemEnd}" stroke="${color}" stroke-width="1.2"/>`;
             }
           }
           // Articulations: placed above or below the note depending on stem direction.
@@ -417,7 +417,7 @@ const Graphics = (() => {
           const x = leftX + ((starts[g] - sysBase) / sysSpan) * (rightX - leftX);
           const noteY = y(n.pos);
           const up = n.pos <= 4;
-          return [x + (up ? 6 : -6), up ? noteY - 34 : noteY + 34];
+          return [x + (up ? 4.2 : -4.2), up ? noteY - 28 : noteY + 28];
         };
         const [x1, y1] = stemEndOf(first);
         const [x2, y2] = stemEndOf(last);
@@ -437,16 +437,16 @@ const Graphics = (() => {
       const isLastSystem = s === systems.length - 1;
       if (isLastSystem && repeatEnd) {
         svg += `<circle cx="${rightX - 8}" cy="${y(5)}" r="1.5" fill="${INK}"/><circle cx="${rightX - 8}" cy="${y(3)}" r="1.5" fill="${INK}"/>`;
-        svg += `<line x1="${rightX - 4}" y1="${y(8)}" x2="${rightX - 4}" y2="${y(0)}" stroke="${INK}" stroke-width="1.3"/>`;
+        svg += `<line x1="${rightX - 4}" y1="${y(8)}" x2="${rightX - 4}" y2="${y(0)}" stroke="${INK}" stroke-width="1.0"/>`;
         svg += `<line x1="${rightX}" y1="${y(8)}" x2="${rightX}" y2="${y(0)}" stroke="${INK}" stroke-width="3.5"/>`;
       } else {
-        svg += `<line x1="${rightX}" y1="${y(8)}" x2="${rightX}" y2="${y(0)}" stroke="${INK}" stroke-width="${isLastSystem ? 3.5 : 1.3}"/>`;
+        svg += `<line x1="${rightX}" y1="${y(8)}" x2="${rightX}" y2="${y(0)}" stroke="${INK}" stroke-width="${isLastSystem ? 3.5 : 1.0}"/>`;
       }
       // Start-repeat at the beginning of the first system.
       if (s === 0 && repeatStart) {
         const rx = lineStartX + 2;
         svg += `<line x1="${rx}" y1="${y(8)}" x2="${rx}" y2="${y(0)}" stroke="${INK}" stroke-width="3.5"/>`;
-        svg += `<line x1="${rx + 4}" y1="${y(8)}" x2="${rx + 4}" y2="${y(0)}" stroke="${INK}" stroke-width="1.3"/>`;
+        svg += `<line x1="${rx + 4}" y1="${y(8)}" x2="${rx + 4}" y2="${y(0)}" stroke="${INK}" stroke-width="1.0"/>`;
         svg += `<circle cx="${rx + 8}" cy="${y(5)}" r="1.5" fill="${INK}"/><circle cx="${rx + 8}" cy="${y(3)}" r="1.5" fill="${INK}"/>`;
       }
     });
