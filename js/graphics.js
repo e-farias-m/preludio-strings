@@ -210,7 +210,7 @@ const Graphics = (() => {
   // The note at `highlightIndex` is drawn in the accent colour with a soft halo
   // so the tune reads like sheet music with the student's current note called
   // out; the rest stay in ink.
-  function melodySVG({ notes = [], highlightIndex = -1, clef = 'treble', accentColor = 'var(--accent-warm)', width = 320, perSystem = 6, beatsPerBar = 4, timeSig = null, keySig = 0, pickup = 0, gaps = [] }) {
+  function melodySVG({ notes = [], highlightIndex = -1, clef = 'treble', accentColor = 'var(--accent-warm)', width = 320, perSystem = 6, beatsPerBar = 4, timeSig = null, keySig = 0, bpm = null, pickup = 0, gaps = [] }) {
     if (!notes.length) return '';
     // Rest outlines are Bravura's (SIL OFL, see fonts/OFL.txt), like the clefs.
     const REST_GLYPH = {
@@ -304,6 +304,11 @@ const Graphics = (() => {
       if (s === 0) {
         svg += `<text x="${sigX}" y="${y(4) - 1}" font-size="26" font-weight="700" text-anchor="middle" font-family="Georgia, serif" fill="${INK}">${sigNum}</text>`;
         svg += `<text x="${sigX}" y="${y(2) + 15}" font-size="26" font-weight="700" text-anchor="middle" font-family="Georgia, serif" fill="${INK}">${sigDen}</text>`;
+      }
+      // Tempo marking — the song's own written tempo, placed above the staff
+      // on the first system.
+      if (s === 0 && bpm) {
+        svg += `<text x="${sigX}" y="${y(8) - 20}" font-size="13" font-weight="700" text-anchor="middle" font-family="Georgia, serif" fill="${INK}">\u2669=${bpm}</text>`;
       }
 
       let globalIndex = systems.slice(0, s).reduce((a, sys) => a + sys.length, 0);

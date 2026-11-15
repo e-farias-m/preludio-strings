@@ -2657,7 +2657,7 @@ function renderSongPresentPhase(inst, lesson) {
     melodyNotes.push({ pos: n.staffStep, accidental: n.accidental, duration: songDurations[i] });
   });
   const melodySvg = melodyNotes.length
-    ? Graphics.melodySVG({ notes: melodyNotes, highlightIndex, clef: inst.clef, accentColor: instAccent(inst), width: 320, timeSig: lesson.timeSig, keySig: lesson.keySig || 0, pickup: lesson.pickup, gaps: lesson.gaps || [] })
+    ? Graphics.melodySVG({ notes: melodyNotes, highlightIndex, clef: inst.clef, accentColor: instAccent(inst), width: 320, timeSig: lesson.timeSig, keySig: lesson.keySig || 0, bpm: lesson.bpm || 100, pickup: lesson.pickup, gaps: lesson.gaps || [] })
     : '';
 
   let actionButtons;
