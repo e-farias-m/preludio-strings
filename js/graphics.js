@@ -19,6 +19,13 @@ const Graphics = (() => {
   const HOUSING_EDGE = 'var(--dg-housing-edge)';
   const OPEN = 'var(--dg-open)';            // open hole / vent interior
 
+  // Key signature positions: staff steps of the letters as they land on the
+  // staff for each sharp/flat, ordered F C G D A E B (sharps) or
+  // B E A D G C F (flats).
+  const KEY_SHARP_POS = [8, 5, 9, 6, 3, 7, 4];  // F C G D A E B
+  const KEY_FLAT_POS = [4, 7, 3, 6, 2, 5, 1];   // B E A D G C F
+  const KEY_X = 56;                            // left edge reserved for key sig + time sig
+
   function yForPos(pos) { return STAFF_BOTTOM_Y - pos * HALF; }
 
   // Ledger lines are drawn for the line positions between the staff and the
@@ -203,7 +210,7 @@ const Graphics = (() => {
   // The note at `highlightIndex` is drawn in the accent colour with a soft halo
   // so the tune reads like sheet music with the student's current note called
   // out; the rest stay in ink.
-  function melodySVG({ notes = [], highlightIndex = -1, clef = 'treble', accentColor = 'var(--accent-warm)', width = 320, perSystem = 6, beatsPerBar = 4, timeSig = null, pickup = 0, gaps = [] }) {
+  function melodySVG({ notes = [], highlightIndex = -1, clef = 'treble', accentColor = 'var(--accent-warm)', width = 320, perSystem = 6, beatsPerBar = 4, timeSig = null, keySig = 0, pickup = 0, gaps = [] }) {
     if (!notes.length) return '';
     const VB_W = 360;
     // Each system leaves room for the clef, which overhangs the staff.
@@ -266,6 +273,18 @@ const Graphics = (() => {
       const clefName = CLEF_GLYPH[clef] ? clef : 'treble';
       const cmet = CLEF_GLYPH[clefName];
       svg += clefAt(clefName, CLEF_MELODY_LEFT[clefName], STAFF_SPACE * CLEF_MELODY_SCALE, y(cmet.refPos), INK);
+      // Key signature: sharps (or flats) stack to the right of the clef, one
+      // per accidental in the key, before the time signature takes its place.
+      if (s === 0) {
+        const keyCount = Math.min(Math.abs(keySig) || 0, 7);
+        if (keyCount > 0) {
+          const keyPos = keySig > 0 ? KEY_SHARP_POS : KEY_FLAT_POS;
+          const keyGlyph = keySig > 0 ? '\u266F' : '\u266D';
+          for (let i = 0; i < keyCount; i++) {
+            svg += `<text x="${KEY_X + i * 8}" y="${y(keyPos[i]) + 6}" font-size="17" fill="${INK}" font-family="Georgia, serif">${keyGlyph}</text>`;
+          }
+        }
+      }
       // Time signature: "4" over "4" centred on the middle of the staff.
       if (s === 0) {
         svg += `<text x="${sigX}" y="${y(4) - 1}" font-size="26" font-weight="700" text-anchor="middle" font-family="Georgia, serif" fill="${INK}">${sigNum}</text>`;
@@ -278,6 +297,22 @@ const Graphics = (() => {
       systemNotes.forEach((note, k) => { const g = globalIndex + k; sysBase = Math.min(sysBase, starts[g]); sysEnd = Math.max(sysEnd, starts[g] + durs[g] + (gapArr[g] || 0)); });
       if (sysBase === Infinity) sysBase = 0;
       const sysSpan = sysEnd - sysBase || 1;
+
+      // Runs of eighth notes inside one beat share a beam — the same notation
+      // a human arranger writes. A beam never crosses a bar line or a rest gap.
+      const sysBeamGroups = [];
+      let curBeam = [];
+      let prevG = -1;
+      for (let k = 0; k < systemNotes.length; k++) {
+        const g = globalIndex + k;
+        const isEighth = durs[g] === 0.5;
+        const canJoin = isEighth && curBeam.length > 0 && prevG >= 0 && barOf[g] === barOf[prevG] && (gapArr[g] || 0) === 0 && (gapArr[prevG] || 0) === 0;
+        if (canJoin) curBeam.push(g);
+        else { if (curBeam.length > 1) sysBeamGroups.push(curBeam); curBeam = isEighth ? [g] : []; }
+        prevG = g;
+      }
+      if (curBeam.length > 1) sysBeamGroups.push(curBeam);
+
       systemNotes.forEach((note, k) => {
         const g = globalIndex + k;
         const x = leftX + ((starts[g] - sysBase) / sysSpan) * (rightX - leftX);
@@ -315,17 +350,54 @@ const Graphics = (() => {
           const headStroke = open ? color : OPEN;
           const headStrokeW = open ? 1.8 : 1.2;
           svg += `<ellipse cx="${x}" cy="${noteY}" rx="6.2" ry="4.6" fill="${headFill}" stroke="${headStroke}" stroke-width="${headStrokeW}" transform="rotate(-18 ${x} ${noteY})"/>`;
+          // A dotted value (dotted quarter = 1.5, dotted half = 3) carries a dot.
+          if (duration === 1.5 || duration === 3) {
+            svg += `<circle cx="${x + 10}" cy="${noteY}" r="1.6" fill="${color}"/>`;
+          }
           if (stemmed) {
-            const stemUp = note.pos <= 4;
-            const stemX = stemUp ? x + 6 : x - 6;
-            const stemEnd = stemUp ? noteY - 34 : noteY + 34;
-            svg += `<line x1="${stemX}" y1="${noteY}" x2="${stemX}" y2="${stemEnd}" stroke="${color}" stroke-width="1.6"/>`;
+            // Notes that belong to a beam group get their stem from the beam
+            // itself, so a beamed pair never draws two overlapping stems.
+            const inBeam = sysBeamGroups.some(gr => gr.includes(g));
+            if (!inBeam) {
+              const stemUp = note.pos <= 4;
+              const stemX = stemUp ? x + 6 : x - 6;
+              const stemEnd = stemUp ? noteY - 34 : noteY + 34;
+              svg += `<line x1="${stemX}" y1="${noteY}" x2="${stemX}" y2="${stemEnd}" stroke="${color}" stroke-width="1.6"/>`;
+            }
           }
         }
       });
 
-      // Bar line at the end of every system.
-      svg += `<line x1="${rightX}" y1="${y(8)}" x2="${rightX}" y2="${y(0)}" stroke="${INK}" stroke-width="1.3"/>`;
+      // Beams: connect the stems of each run of eighth notes. Pairs get a
+      // curved beam, longer runs a straight one through the first and last stem.
+      sysBeamGroups.forEach(gr => {
+        if (gr.length < 2) return;
+        const first = gr[0];
+        const last = gr[gr.length - 1];
+        const stemUp = notes[first].pos <= 4;
+        const stemEndOf = g => {
+          const n = notes[g];
+          const x = leftX + ((starts[g] - sysBase) / sysSpan) * (rightX - leftX);
+          const noteY = y(n.pos);
+          const up = n.pos <= 4;
+          return [x + (up ? 6 : -6), up ? noteY - 34 : noteY + 34];
+        };
+        const [x1, y1] = stemEndOf(first);
+        const [x2, y2] = stemEndOf(last);
+        const color = gr.some(g => g === highlightIndex) ? accentColor : INK;
+        if (gr.length === 2) {
+          const midX = (x1 + x2) / 2;
+          const midY = (y1 + y2) / 2;
+          svg += `<path d="M${x1} ${y1} Q${midX} ${midY} ${x2} ${y2}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round"/>`;
+        } else {
+          svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="3.5"/>`;
+        }
+      });
+
+      // Bar line at the end of every system; the closing bar line of the piece
+      // is thick, the line that only ends a system stays thin.
+      const isLastSystem = s === systems.length - 1;
+      svg += `<line x1="${rightX}" y1="${y(8)}" x2="${rightX}" y2="${y(0)}" stroke="${INK}" stroke-width="${isLastSystem ? 3.5 : 1.3}"/>`;
     });
 
     svg += `</svg>`;
