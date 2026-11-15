@@ -277,7 +277,7 @@ const Graphics = (() => {
     const VB_H = systems.length * SYSTEM_H + 16;
     const renderH = width * (VB_H / VB_W);
 
-    let svg = `<svg viewBox="0 0 ${VB_W} ${VB_H}" width="${width}" height="${renderH.toFixed(1)}" xmlns="http://www.w3.org/2000/svg">`;
+    let svg = `<svg viewBox="0 0 ${VB_W} ${VB_H}" width="${(width * 0.9).toFixed(1)}" height="${(renderH * 0.9).toFixed(1)}" xmlns="http://www.w3.org/2000/svg">`;
     const noteInfo = {};
 
     systems.forEach((systemNotes, s) => {
