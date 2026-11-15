@@ -332,6 +332,18 @@ for (const inst of Object.values(CURRICULUM)) {
     'a quarter rest is drawn from the engraved rest glyph');
   // The song's written tempo is drawn as a marking above the staff.
   check(Graphics.melodySVG({ notes: [{ pos: 2, duration: 1 }], bpm: 100 }).includes('\u2669=100'), 'the song tempo is drawn above the staff');
+  // Ledger notes reach outside the staff, so the viewBox must grow with the
+  // tune's range instead of clipping them at the edge.
+  const deep = Graphics.melodySVG({ notes: [{ pos: -5, duration: 1 }], accentColor: '#e0a020' });
+  const deepH = parseFloat(deep.match(/viewBox="0 0 [\d.]+ ([\d.]+)"/)[1]);
+  const deepYs = [...deep.matchAll(/(?:cy|y1|y2|y)="(-?[\d.]+)"/g)].map(m => parseFloat(m[1]));
+  check(deepYs.length > 0 && Math.max(...deepYs) <= deepH,
+    `a low ledger note fits inside the viewBox (max y ${Math.max(...deepYs)} of ${deepH})`);
+  const high = Graphics.melodySVG({ notes: [{ pos: 14, duration: 1 }], accentColor: '#e0a020' });
+  const highH = parseFloat(high.match(/viewBox="0 0 [\d.]+ ([\d.]+)"/)[1]);
+  const highYs = [...high.matchAll(/(?:cy|y1|y2|y)="(-?[\d.]+)"/g)].map(m => parseFloat(m[1]));
+  check(highYs.length > 0 && Math.min(...highYs) >= 0 && Math.max(...highYs) <= highH,
+    `a high ledger note fits inside the viewBox (y ${Math.min(...highYs)}..${Math.max(...highYs)} of ${highH})`);
 }
 
 // ── Optional markings: repeats, articulations, dynamics, slurs ─────────────

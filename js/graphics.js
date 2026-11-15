@@ -230,6 +230,8 @@ const Graphics = (() => {
       return `<path class="rest rest-${kind}" d="${glyph.d}" fill="${color}" transform="translate(${tx.toFixed(2)} ${y(ref).toFixed(2)}) scale(${s.toFixed(5)} ${(-s).toFixed(5)})"/>`;
     };
     const VB_W = 360;
+    const HEAD_RX = 6.6;       // melody notehead — kept identical in every project
+    const HEAD_RY = 4.2;
     // Each system leaves room for the clef and measure numbers, while keeping
     // the staff compact so it doesn't dominate the whole page.
     const SYSTEM_H = 90;
@@ -276,14 +278,24 @@ const Graphics = (() => {
       currentCount += bar.length;
     });
     if (current.length) systems.push(current);
-    const VB_H = systems.length * SYSTEM_H + 13;
+    // Ledger notes reach above and below the staff, so the layout grows with
+    // the tune's real range: a normal score keeps the fixed SYSTEM_H rhythm,
+    // while ledger notes get taller systems instead of being clipped.
+    const lowPos = Math.min(0, ...notes.map(n => n.pos));
+    const highPos = Math.max(8, ...notes.map(n => n.pos));
+    const topReach = Math.max(0, (highPos - 8) * MH + HEAD_RY);  // ink above the top line
+    const lowDepth = Math.max(0, (8 - lowPos) * MH + HEAD_RY);   // ink below it
+    const sysStep = SYSTEM_H + Math.max(0, lowDepth - (8 * MH + HEAD_RY)) + Math.max(0, topReach - HEAD_RY);
+    const topFirstY = Math.max(TOP_LINE_Y, topReach + 12);
+    const VB_H = Math.ceil(topFirstY + (systems.length - 1) * sysStep
+      + Math.max(SYSTEM_H - TOP_LINE_Y + 13, lowDepth + 12));
     const renderH = width * (VB_H / VB_W);
 
     let svg = `<svg viewBox="0 0 ${VB_W} ${VB_H}" width="${width}" height="${renderH.toFixed(1)}" xmlns="http://www.w3.org/2000/svg">`;
     const noteInfo = {};
 
     systems.forEach((systemNotes, s) => {
-      const topLineY = TOP_LINE_Y + s * SYSTEM_H;
+      const topLineY = topFirstY + s * sysStep;
       const y = pos => topLineY + (8 - pos) * MH;
 
       for (let p = 0; p <= 8; p += 2) {
@@ -375,7 +387,7 @@ const Graphics = (() => {
           const headFill = open ? 'none' : color;
           const headStroke = open ? color : OPEN;
           const headStrokeW = open ? 1.9 : 1.5;
-          svg += `<ellipse cx="${x}" cy="${noteY}" rx="6.6" ry="4.2" fill="${headFill}" stroke="${headStroke}" stroke-width="${headStrokeW}" transform="rotate(-18 ${x} ${noteY})"/>`;
+          svg += `<ellipse cx="${x}" cy="${noteY}" rx="${HEAD_RX}" ry="${HEAD_RY}" fill="${headFill}" stroke="${headStroke}" stroke-width="${headStrokeW}" transform="rotate(-18 ${x} ${noteY})"/>`;
           // A dotted value (dotted quarter = 1.5, dotted half = 3) carries a dot.
           if (duration === 1.5 || duration === 3) {
             svg += `<circle cx="${x + 12}" cy="${noteY}" r="1.8" fill="${color}"/>`;
