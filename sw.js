@@ -7,6 +7,7 @@ const FILES = [
   './favicon.ico',
   './favicon-32.png',
   './logo.svg',
+  './logo-dark.svg',
   './icon-180.png',
   './icon-192.png',
   './icon-512.png',

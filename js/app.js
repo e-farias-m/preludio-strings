@@ -152,12 +152,15 @@ function clearSavedInstrument() { LS.removeItem(INSTRUMENT_KEY); }
 
 // ── THEME ──────────────────────────────────────────────────────────────────
 function getTheme() { return LS.getItem(THEME_KEY) || 'light'; }
+function logoSrc() { return getTheme() === 'light' ? 'logo.svg' : 'logo-dark.svg'; }
 function applyTheme(theme) {
   if (typeof document !== 'undefined' && document.documentElement) {
     document.documentElement.setAttribute('data-theme', theme);
     const meta = document.querySelector && document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', theme === 'light' ? '#F5F4FB' : '#0E0D1C');
   }
+  const fixed = document.getElementById && document.getElementById('app-logo-fixed');
+  if (fixed) fixed.src = logoSrc();
 }
 function setTheme(theme) {
   LS.setItem(THEME_KEY, theme);
@@ -1459,7 +1462,7 @@ function showNamePrompt() {
   overlay.innerHTML = translateHtml(`
     <div class="name-modal">
       <div style="display:flex;justify-content:flex-end;width:100%"><button class="theme-toggle" data-action="name-toggle-language" title="${t('Language')}">${getLang() === 'pt' ? 'PT' : getLang() === 'fr' ? 'FR' : 'EN'}</button></div>
-      <div class="name-modal-icon"><img class="wordmark-logo-full" src="logo.svg" alt="Preludio Strings" style="height:56px" /></div>
+      <div class="name-modal-icon"><img class="wordmark-logo-full" src="${logoSrc()}" alt="Preludio Strings" style="height:56px" /></div>
       <div class="name-modal-title">${t('Welcome!')}</div>
       <div class="name-modal-sub">${t("What's your name?")}</div>
       <input type="text" class="name-input" placeholder="${t('Your name...')}" maxlength="50" autocomplete="off" />
@@ -1607,7 +1610,7 @@ function renderSelectScreen() {
     <div class="screen active select-screen">
       <div class="select-hero">
         <div class="wordmark">
-          <img class="wordmark-logo-full" src="logo.svg" alt="Preludio Strings" />
+          <img class="wordmark-logo-full" src="${logoSrc()}" alt="Preludio Strings" />
         </div>
         <div class="select-headline">${headline}</div>
         <div class="select-sub">${sub}</div>
@@ -3417,7 +3420,7 @@ function render() {
   }
   renderToolWidget();
   const _logoFixed = document.getElementById('app-logo-fixed');
-  if (_logoFixed) _logoFixed.style.display = (APP.screen === 'select') ? 'none' : 'block';
+  if (_logoFixed) { _logoFixed.style.display = (APP.screen === 'select') ? 'none' : 'block'; _logoFixed.src = logoSrc(); }
 }
 
 // ── PLAY PHASE SEQUENCE ─────────────────────────────────────────────────
