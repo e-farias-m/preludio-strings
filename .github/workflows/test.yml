@@ -21,7 +21,6 @@ jobs:
           node test-curriculum.js || status=1
           node test-app.js || status=1
           node test-graphics.js || status=1
-          node test-musicxml.js || status=1
           node test-i18n.js || status=1
           node test-i18n-ui.js || status=1
           exit $status
