@@ -338,9 +338,14 @@ const Graphics = (() => {
     systems.forEach((systemNotes, s) => {
       const topLineY = topFirstY + s * sysStep;
       const y = pos => topLineY + (8 - pos) * MH;
+      // A short last system ends after its final bar instead of stretching a
+      // mostly empty staff across the full width.
+      const firstBar = s * perSystem;
+      const bars = Math.min(perSystem, nBars - firstBar);
+      const endX = leftX + bars * barW;
 
       for (let p = 0; p <= 8; p += 2) {
-        svg += `<line x1="${lineStartX}" y1="${y(p)}" x2="${rightX}" y2="${y(p)}" stroke="${INK}" stroke-width="1.0"/>`;
+        svg += `<line x1="${lineStartX}" y1="${y(p)}" x2="${endX}" y2="${y(p)}" stroke="${INK}" stroke-width="1.0"/>`;
       }
       const clefName = CLEF_GLYPH[clef] ? clef : 'treble';
       const cmet = CLEF_GLYPH[clefName];
@@ -386,6 +391,13 @@ const Graphics = (() => {
       }
       if (curBeam.length > 1) sysBeamGroups.push(curBeam);
 
+      // Interior bar lines sit on the exact bar boundaries, so a system's
+      // bars keep the same width whether or not it is the last one.
+      for (let b = 1; b < bars; b++) {
+        const bx = leftX + b * barW;
+        svg += `<line x1="${bx}" y1="${y(8)}" x2="${bx}" y2="${y(0)}" stroke="${INK}" stroke-width="1.0"/>`;
+      }
+
       systemNotes.forEach((note, k) => {
         const g = globalIndex + k;
         const x = xMap.get(g);
@@ -397,12 +409,6 @@ const Graphics = (() => {
         const effective = gap > 0 ? gap : duration;
         const open = effective >= 2;                     // half and longer: hollow
         const stemmed = effective < 4;                  // whole notes lose the stem
-
-        // Bar line just before this note when the previous note ended a bar.
-        if (k > 0 && barOf[g] !== barOf[g - 1]) {
-          const bx = x - ((rightX - leftX) / systemNotes.length) / 2;
-          svg += `<line x1="${bx}" y1="${y(8)}" x2="${bx}" y2="${y(0)}" stroke="${INK}" stroke-width="1.0"/>`;
-        }
 
         if (lit) svg += `<circle cx="${x}" cy="${noteY}" r="15.5" fill="${accentColor}" opacity="0.18"/>`;
         if (gap > 0) {
@@ -485,11 +491,11 @@ const Graphics = (() => {
       // dots + thin + thick.
       const isLastSystem = s === systems.length - 1;
       if (isLastSystem && repeatEnd) {
-        svg += `<circle cx="${rightX - 7}" cy="${y(5)}" r="1.2" fill="${INK}"/><circle cx="${rightX - 7}" cy="${y(3)}" r="1.2" fill="${INK}"/>`;
-        svg += `<line x1="${rightX - 3.5}" y1="${y(8)}" x2="${rightX - 3.5}" y2="${y(0)}" stroke="${INK}" stroke-width="1.0"/>`;
-        svg += `<line x1="${rightX}" y1="${y(8)}" x2="${rightX}" y2="${y(0)}" stroke="${INK}" stroke-width="3.0"/>`;
+        svg += `<circle cx="${endX - 7}" cy="${y(5)}" r="1.2" fill="${INK}"/><circle cx="${endX - 7}" cy="${y(3)}" r="1.2" fill="${INK}"/>`;
+        svg += `<line x1="${endX - 3.5}" y1="${y(8)}" x2="${endX - 3.5}" y2="${y(0)}" stroke="${INK}" stroke-width="1.0"/>`;
+        svg += `<line x1="${endX}" y1="${y(8)}" x2="${endX}" y2="${y(0)}" stroke="${INK}" stroke-width="3.0"/>`;
       } else {
-        svg += `<line x1="${rightX}" y1="${y(8)}" x2="${rightX}" y2="${y(0)}" stroke="${INK}" stroke-width="${isLastSystem ? 3.0 : 1.0}"/>`;
+        svg += `<line x1="${endX}" y1="${y(8)}" x2="${endX}" y2="${y(0)}" stroke="${INK}" stroke-width="${isLastSystem ? 3.0 : 1.0}"/>`;
       }
       // Start-repeat at the beginning of the first system.
       if (s === 0 && repeatStart) {

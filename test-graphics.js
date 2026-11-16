@@ -358,6 +358,22 @@ for (const inst of Object.values(CURRICULUM)) {
   // stays thin, so a single-bar tune still gets its final (thick) bar line.
   check(/stroke-width="3(?:\.0)?"/.test(Graphics.melodySVG({ notes: q(4), accentColor: '#e0a020' })),
     'the closing bar line of a tune is thick');
+  // A short last system stops after its last bar: 5 bars at 4 per system
+  // leave one bar, so the staff ends at a quarter of the usable width instead
+  // of stretching an empty staff across the page.
+  const staffEnds = svg => [...new Set(
+    [...svg.matchAll(/<line x1="20" y1="([\d.]+)" x2="([\d.]+)" y2="\1"/g)].map(m => +m[2])
+  )];
+  const fiveBars = Graphics.melodySVG({ notes: q(20), accentColor: '#e0a020' });
+  const ends = staffEnds(fiveBars);
+  check(ends.length === 2 && ends[1] < ends[0],
+    `the last system ends after its last bar (got ${JSON.stringify(ends)})`);
+  const closing = [...fiveBars.matchAll(/<line x1="([\d.]+)"[^>]*stroke-width="3(?:\.0)?"/g)].map(m => +m[1]);
+  check(closing.length === 1 && closing[0] === ends[1],
+    `the closing bar line sits at the end of the short last system (got ${JSON.stringify(closing)})`);
+  // A tune that fills its last system still reaches the right margin.
+  check(staffEnds(Graphics.melodySVG({ notes: q(16), accentColor: '#e0a020' }))[0] === 348,
+    'a full last system still spans the whole staff width');
   // A key signature (here, one sharp) is drawn to the right of the clef.
   check(Graphics.melodySVG({ notes: q(4), keySig: 1, accentColor: '#e0a020' }).includes('\u266F'),
     'a one-sharp key signature is drawn');
