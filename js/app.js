@@ -3163,7 +3163,6 @@ function renderCompletePhase(inst, lesson) {
     mastered: 'You really know this note well!',
   };
 
-  const exportBtn = isSong ? `<button class="btn btn-secondary" data-action="export-musicxml" style="width:100%;margin-bottom:8px">Export MusicXML</button>` : '';
   // Mastery is tracked per note, so it is meaningless for a song (whose id is
   // not a note) — only show the badge for regular note lessons.
   const masteryBadge = isSong ? '' : `<div style="margin-top:8px;padding:6px 14px;border-radius:20px;background:${masteryColor}22;color:${masteryColor};font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">${getMasteryLabel(masteryLevel)} — ${mastery} ${t('correct')}</div>`;
@@ -3176,7 +3175,6 @@ function renderCompletePhase(inst, lesson) {
       <div class="complete-sub">${isSong ? t('Song complete!') : messages[masteryLevel]}</div>
       ${masteryBadge}
       <div class="gap-lg"></div>
-      ${exportBtn}
       <button class="btn btn-primary btn-wide" data-action="finish-lesson">Continue</button>
     </div>`;
 }
@@ -3643,134 +3641,6 @@ function updateTunerReadout() {
 }
 
 // ── MUSICXML ──────────────────────────────────────────────────────────
-function exportSongMusicXML(inst, lesson) {
-  function pitchAttr(n) {
-    const step = n.noteName.replace(/[♭♯#b]/g, '').charAt(0);
-    const oct = n.octave;
-    const acc = n.accidental;
-    let xml = `<pitch><step>${step}</step>`;
-    if (acc === '♭' || acc === 'b') xml += `<alter>-1</alter>`;
-    else if (acc === '♯' || acc === '#') xml += `<alter>1</alter>`;
-    xml += `<octave>${oct}</octave></pitch>`;
-    return xml;
-  }
-  // Smallest denominator that turns x into a whole number (within rounding).
-  function denominatorOf(x) {
-    for (let den = 1; den <= 64; den++) {
-      if (Math.abs(x * den - Math.round(x * den)) < 1e-6) return den;
-    }
-    return 1;
-  }
-  function gcd(a, b) { return b ? gcd(b, a % b) : a; }
-  function lcm(a, b) { return (a / gcd(a, b)) * b; }
-
-  const BEATS_PER_MEASURE = 4;
-  const noteIds = lesson.noteIds;
-  const durations = getNoteDurations(lesson);
-  // Pick divisions so every duration (and every barline split of one) is an
-  // integer number of divisions. Songs are whole beats, but imported songs may
-  // contain eighths, sixteenths, or triplets.
-  const divisions = durations.reduce((acc, d) => lcm(acc, denominatorOf(d)), 1);
-  const MEASURE_UNITS = BEATS_PER_MEASURE * divisions;
-  const durationUnits = durations.map(d => Math.max(1, Math.round(d * divisions)));
-
-  function typeFor(units) {
-    const d = units / divisions;
-    if (d >= 4) return 'whole';
-    if (d >= 2) return 'half';
-    if (d >= 1) return 'quarter';
-    if (d >= 0.5) return 'eighth';
-    return '16th';
-  }
-
-  // The clef written into the file: treble (G2), alto (C3) or bass (F4).
-  const clefXml = inst.clef === 'bass' ? '<sign>F</sign><line>4</line>'
-    : inst.clef === 'alto' ? '<sign>C</sign><line>3</line>'
-    : '<sign>G</sign><line>2</line>';
-  const lines = ['<?xml version="1.0" encoding="UTF-8"?>'];
-  lines.push('<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">');
-  lines.push('<score-partwise version="4.0">');
-  lines.push('  <part-list><score-part id="P1"><part-name>' + escapeXml(lesson.noteName) + '</part-name></score-part></part-list>');
-  lines.push('  <part id="P1">');
-
-  let measure = 1, beat = 0; // beat is measured in divisions (units)
-  let measureNotes = [];
-
-  function emitNote(mn) {
-    lines.push('      <note>');
-    if (mn.rest) {
-      lines.push('        <rest/>');
-    } else {
-      if (mn.chord) lines.push('        <chord/>');
-      lines.push('        ' + pitchAttr(mn.note));
-    }
-    lines.push('        <duration>' + mn.units + '</duration>');
-    if (mn.tieStart) lines.push('        <tie type="start"/>');
-    if (mn.tieStop) lines.push('        <tie type="stop"/>');
-    lines.push('        <type>' + typeFor(mn.units) + '</type>');
-    if (mn.tieStart || mn.tieStop) {
-      let tied = '';
-      if (mn.tieStop) tied += '<tied type="stop"/>';
-      if (mn.tieStart) tied += '<tied type="start"/>';
-      lines.push('        <notations>' + tied + '</notations>');
-    }
-    lines.push('      </note>');
-  }
-
-  function flushMeasure() {
-    lines.push('    <measure number="' + measure + '">');
-    if (measure === 1) {
-      lines.push('      <attributes>');
-      lines.push('        <divisions>' + divisions + '</divisions>');
-      lines.push('        <key><fifths>0</fifths></key>');
-      lines.push('        <time><beats>4</beats><beat-type>4</beat-type></time>');
-      lines.push('        <clef>' + clefXml + '</clef>');
-      lines.push('      </attributes>');
-      if (lesson.bpm) {
-        lines.push('      <direction placement="above"><direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>' + lesson.bpm + '</per-minute></metronome></direction-type><sound tempo="' + lesson.bpm + '"/></direction>');
-      }
-    }
-    measureNotes.forEach(emitNote);
-    lines.push('    </measure>');
-    measureNotes = [];
-  }
-
-  for (let i = 0; i < noteIds.length; i++) {
-    const n = findLessonById(APP.instrumentId, noteIds[i]);
-    if (!n) continue;
-    const chordNotes = chordLessonIds(APP.instrumentId, noteIds[i])
-      .map(id => findLessonById(APP.instrumentId, id)).filter(Boolean);
-    let remaining = durationUnits[i];
-    let elapsed = 0;
-    // Split any note that crosses a barline, tying the pieces together so the
-    // rhythm is preserved instead of overflowing the measure.
-    while (remaining > 0) {
-      const space = MEASURE_UNITS - beat;
-      const seg = Math.min(remaining, space);
-      const tieStart = remaining - seg > 0;
-      const tieStop = elapsed > 0;
-      measureNotes.push({ note: n, units: seg, chord: false, tieStart, tieStop });
-      chordNotes.forEach(cn => measureNotes.push({ note: cn, units: seg, chord: true, tieStart, tieStop }));
-      beat += seg;
-      remaining -= seg;
-      elapsed += seg;
-      if (beat >= MEASURE_UNITS) {
-        flushMeasure();
-        measure++;
-        beat = 0;
-      }
-    }
-  }
-  // A short final measure is padded with a rest so the export stays in 4/4.
-  if (measureNotes.length > 0) {
-    if (beat > 0) measureNotes.push({ rest: true, units: MEASURE_UNITS - beat });
-    flushMeasure();
-  }
-
-  lines.push('  </part>');
-  lines.push('</score-partwise>');
-  return lines.join('\n');
-}
 function escapeXml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
 }
@@ -4585,19 +4455,6 @@ function handleAction(action, el) {
       break;
     }
 
-    case 'export-musicxml': {
-      const inst = getInstrument(APP.instrumentId);
-      const lesson = getLesson(APP.instrumentId, APP.lessonIndex);
-      const xml = exportSongMusicXML(inst, lesson);
-      const blob = new Blob([xml], { type: 'application/xml' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = (lesson.noteName || 'song').replace(/[^a-zA-Z0-9]+/g, '-') + '.musicxml';
-      a.click();
-      URL.revokeObjectURL(url);
-      break;
-    }
     case 'import-song': {
       document.getElementById('import-file-input').click();
       break;
