@@ -56,7 +56,7 @@ ${read('graphics.js')}
 ${read('i18n.js')}
 ${read('app.js')}
 return {
-  CURRICULUM, APP, TRANSLATIONS, BADGES, setLang, getLang, translateHtml,
+  CURRICULUM, APP, TRANSLATIONS, NOTE_TO_SOLFEGE_PT, BADGES, setLang, getLang, translateHtml,
   renderSelectScreen, renderSettingsScreen, renderTutorialScreen, renderMapScreen,
   renderFirstSoundScreen, renderLookupScreen, renderPracticeScreen, renderEarScreen,
   renderMetronomePanel, renderTunerPanel, renderToolWidget, renderReportScreen,
@@ -74,40 +74,43 @@ function check(cond, msg) {
 }
 
 // ── Build every screen ─────────────────────────────────────────────────────
-// The language is switched first, so the screens carry the wording the app
-// really shows; translateHtml then deals with whatever the markup built.
+// Each pass switches the language first, so the screens carry the wording the
+// app really shows; translateHtml then deals with whatever the markup built.
 api.setLang('pt');
 
-const screens = [];
-function add(name, html) { if (typeof html === 'string' && html) screens.push({ name, html }); }
+function collectScreens() {
+  const screens = [];
+  const add = (name, html) => { if (typeof html === 'string' && html) screens.push({ name, html }); };
 
-api.APP.instrumentId = 'violin';
-api.APP.progress = { violin: { completed: { 'vl-1': { stars: 3 } }, xp: 300, mastery: {} } };
-add('select', api.renderSelectScreen());
-add('settings', api.renderSettingsScreen());
-add('tutorial', api.renderTutorialScreen());
-add('map', api.renderMapScreen());
-add('first-sound', api.renderFirstSoundScreen());
-add('lookup', api.renderLookupScreen());
-add('practice', api.renderPracticeScreen());
-add('ear', api.renderEarScreen());
-add('metronome', api.renderMetronomePanel());
-add('tuner', api.renderTunerPanel());
-add('tool-widget', api.renderToolWidget());
-add('report', api.renderReportScreen());
-add('digest', api.renderDigestScreen());
-add('student-card', api.renderStudentCard('Ana'));
-add('badge-shelf', api.renderBadgeShelf());
-add('instrument-grid', api.renderInstrumentGrid());
-add('plan-card', api.renderPlanCard('violin'));
-add('weak-spots', api.renderWeakSpots('violin'));
+  api.APP.instrumentId = 'violin';
+  api.APP.progress = { violin: { completed: { 'vl-1': { stars: 3 } }, xp: 300, mastery: {} } };
+  add('select', api.renderSelectScreen());
+  add('settings', api.renderSettingsScreen());
+  add('tutorial', api.renderTutorialScreen());
+  add('map', api.renderMapScreen());
+  add('first-sound', api.renderFirstSoundScreen());
+  add('lookup', api.renderLookupScreen());
+  add('practice', api.renderPracticeScreen());
+  add('ear', api.renderEarScreen());
+  add('metronome', api.renderMetronomePanel());
+  add('tuner', api.renderTunerPanel());
+  add('tool-widget', api.renderToolWidget());
+  add('report', api.renderReportScreen());
+  add('digest', api.renderDigestScreen());
+  add('student-card', api.renderStudentCard('Ana'));
+  add('badge-shelf', api.renderBadgeShelf());
+  add('instrument-grid', api.renderInstrumentGrid());
+  add('plan-card', api.renderPlanCard('violin'));
+  add('weak-spots', api.renderWeakSpots('violin'));
+
+  const notes = api.getNoteLessons('violin');
+  add('present', api.renderPresentPhase(api.CURRICULUM.violin, notes[0]));
+  const song = api.CURRICULUM.violin.lessons.find(l => l.type === 'song');
+  if (song) add('song-present', api.renderSongPresentPhase(api.CURRICULUM.violin, song));
+  return screens;
+}
 
 const notes = api.getNoteLessons('violin');
-add('present', api.renderPresentPhase(api.CURRICULUM.violin, notes[0]));
-const song = api.CURRICULUM.violin.lessons.find(l => l.type === 'song');
-if (song) add('song-present', api.renderSongPresentPhase(api.CURRICULUM.violin, song));
-
-check(screens.length >= 18, `every screen should be covered (got ${screens.length})`);
 
 // ── The text of a page ─────────────────────────────────────────────────────
 function visibleTexts(html) {
@@ -122,44 +125,68 @@ function visibleTexts(html) {
   return out;
 }
 
-// Words that mark an English sentence. Portuguese keeps a few of them
-// ("nota", "são"), so a match alone is not a failure — the check below looks
-// for a run of English words.
-const ENGLISH_WORDS = new Set([
-  'the', 'your', 'you', 'and', 'with', 'from', 'this', 'that', 'play', 'tap',
-  'learn', 'sound', 'lesson', 'start', 'open', 'settings', 'progress', 'review',
-  'record', 'listen', 'choose', 'every', 'before', 'after', 'first', 'next',
-  'last', 'new', 'all', 'when', 'how', 'what', 'their', 'into', 'about',
-  'here', 'there', 'more', 'good', 'ready', 'again', 'still', 'only', 'also',
-  'than', 'then', 'them', 'these', 'those', 'where', 'while', 'does', 'make',
-  'takes', 'give', 'turn', 'keep', 'help', 'show', 'see', 'try', 'use', 'now',
-  'one', 'two', 'three', 'was', 'were', 'will', 'would', 'should', 'could',
-  'have', 'has', 'had', 'been', 'being', 'does', 'done', 'going', 'want',
-  'need', 'time', 'minute', 'day', 'week', 'note', 'notes', 'string', 'strings',
-]);
+// A rendered word is safe when it appears somewhere in the language's
+// dictionary (values only — keys stay English, so an unwrapped key used at
+// render time still gets flagged). Note names come from the solfège map, and
+// the names the tests inject are allow-listed.
+function buildCorpus(lang, solfege) {
+  const parts = Object.values(api.TRANSLATIONS[lang] || {}).map(v => String(v).toLowerCase());
+  if (solfege) parts.push(...Object.values(solfege).map(v => String(v).toLowerCase()));
+  // translateHtml's pattern fallbacks produce text that is not a dictionary
+  // value ("Faltam 20 min…"); their output words are valid too.
+  const patternSrc = (read('i18n.js').match(/var (?:PT|FR)_PATTERNS = \[[\s\S]*?\n\];/g) || []).join('\n').toLowerCase();
+  parts.push(patternSrc);
+  return parts.join(' · ');
+}
 
-function looksEnglish(text) {
-  const words = text.toLowerCase().match(/[a-zà-ÿ']+/g) || [];
-  if (words.length < 3) return false;
-  let hits = 0;
-  words.forEach(w => { if (ENGLISH_WORDS.has(w)) hits++; });
-  return hits >= 3 && hits / words.length > 0.4;
+const DYNAMIC_OK = new Set(['ana', 'test', 'bpm', 'undefined', 'largo', 'andante', 'moderato', 'allegro', 'presto']);
+
+function looksEnglish(text, corpus) {
+  const words = text.toLowerCase().match(/[a-zà-ÿ]{3,}/g) || [];
+  if (!words.length) return false;
+  return words.some(w => !DYNAMIC_OK.has(w) && !corpus.includes(w));
 }
 
 // ── Nothing is left in English ─────────────────────────────────────────────
-check(api.getLang() === 'pt', 'the app can switch to Portuguese');
-
-const leftovers = new Map();
-for (const { name, html } of screens) {
-  const pt = api.translateHtml(html);
-  for (const text of visibleTexts(pt)) {
-    if (!looksEnglish(text)) continue;
-    if (!leftovers.has(text)) leftovers.set(text, new Set());
-    leftovers.get(text).add(name);
+for (const lang of ['pt', 'fr']) {
+  const corpus = buildCorpus(lang, lang === 'pt' ? api.NOTE_TO_SOLFEGE_PT : (api.NOTE_TO_SOLFEGE_FR || null));
+  api.setLang(lang);
+  const screens = collectScreens();
+  check(screens.length >= 18, `${lang}: every screen should be covered (got ${screens.length})`);
+  const leftovers = new Map();
+  for (const { name, html } of screens) {
+    const out = api.translateHtml(html);
+    for (const text of visibleTexts(out)) {
+      if (!looksEnglish(text, corpus)) continue;
+      if (!leftovers.has(text)) leftovers.set(text, new Set());
+      leftovers.get(text).add(name);
+    }
   }
+  check(leftovers.size === 0,
+    `${lang}: these lines are still English:\n    ${[...leftovers.keys()].map(t => JSON.stringify(t) + ' (' + [...leftovers.get(t)].join(',') + ')').join('\n    ')}`);
 }
-check(leftovers.size === 0,
-  `these lines are still English:\n    ${[...leftovers.keys()].map(t => JSON.stringify(t) + ' (' + [...leftovers.get(t)].join(',') + ')').join('\n    ')}`);
+api.setLang('pt');
+
+// ── Nothing is left in English ─────────────────────────────────────────────
+// ── Dictionary completeness ────────────────────────────────────────────────
+// Every literal t()/tFill() key in the app must exist in pt and fr, or that
+// language silently falls back to English. Words that are spelled the same in
+// both languages on purpose are allow-listed.
+const appSrc = read('app.js') + '\n' + read('curriculum.js');
+const keyRe = /(?:\b|\W)(?:t|tFill)\(\s*('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")/g;
+const usedKeys = new Set();
+let km;
+while ((km = keyRe.exec(appSrc))) usedKeys.add(new Function(`return ${km[1]}`)());
+const SAME_IN_BOTH = new Set(['XP', 'note', 'notes', 'Note', 'Badges', 'Minutes', 'Instruments', 'sprint', '{n} min', 'Hot Cross Buns', 'Merrily We Roll Along']);
+for (const lang of ['pt', 'fr']) {
+  const dict = api.TRANSLATIONS[lang] || {};
+  const missing = [...usedKeys].filter(k => !Object.prototype.hasOwnProperty.call(dict, k));
+  const untranslated = [...usedKeys].filter(k => Object.prototype.hasOwnProperty.call(dict, k) && dict[k] === k && !SAME_IN_BOTH.has(k));
+  check(missing.length === 0, `${lang} dictionary is missing keys:\n    ${missing.map(k => JSON.stringify(k)).join('\n    ')}`);
+  check(untranslated.length === 0, `${lang} dictionary leaves keys in English:\n    ${untranslated.map(k => JSON.stringify(k)).join('\n    ')}`);
+}
+
+check(api.getLang() === 'pt', 'the app can switch to Portuguese');
 
 // ── The Portuguese really shows up ─────────────────────────────────────────
 {
