@@ -261,6 +261,12 @@ for (const inst of Object.values(CURRICULUM)) {
     { pos: 0, accidental: null }, { pos: 1, accidental: '♭' },
     { pos: 2, accidental: null }, { pos: 3, accidental: null },
     { pos: 4, accidental: null }, { pos: 5, accidental: null },
+    { pos: 4, accidental: null }, { pos: 3, accidental: null },
+    { pos: 2, accidental: null }, { pos: 1, accidental: null },
+    { pos: 0, accidental: null }, { pos: 1, accidental: null },
+    { pos: 2, accidental: null }, { pos: 3, accidental: null },
+    { pos: 4, accidental: null }, { pos: 3, accidental: null },
+    { pos: 2, accidental: null }, { pos: 0, accidental: null },
   ];
   const svg = Graphics.melodySVG({ notes, highlightIndex: 3, clef: 'treble', accentColor: '#e0a020', width: 320 });
   check(isSvg(svg), 'melody staff is valid SVG');
@@ -272,6 +278,37 @@ for (const inst of Object.values(CURRICULUM)) {
   check(svg.includes('♭'), 'an accidental note prints its accidental');
   check(!svg.includes('undefined') && !svg.includes('NaN'), 'melody staff contains no undefined/NaN');
   check(Graphics.melodySVG({ notes: [], highlightIndex: 0 }) === '', 'an empty melody renders nothing');
+}
+
+// ── Every curriculum song renders cleanly with dynamic system splitting ─────
+{
+  let renderedSongs = 0;
+  for (const inst of Object.values(CURRICULUM)) {
+    if (!inst.lessons) continue;
+    for (const song of inst.lessons.filter(l => l.type === 'song')) {
+      if (!Array.isArray(song.noteIds) || !song.noteIds.length) continue;
+      const durs = Array.isArray(song.durations) && song.durations.length === song.noteIds.length
+        ? song.durations : song.noteIds.map(() => 1);
+      const notes = [];
+      song.noteIds.forEach((id, i) => {
+        const n = inst.lessons.find(l => l.id === id);
+        if (!n || typeof n.staffStep !== 'number') return;
+        notes.push({ pos: n.staffStep, accidental: n.accidental, duration: durs[i] });
+      });
+      if (!notes.length) continue;
+      const svg = Graphics.melodySVG({
+        notes, clef: inst.clef, accentColor: inst.accentColor || '#C4832A', width: 320,
+        timeSig: song.timeSig, keySig: song.keySig || 0, bpm: song.bpm || 100,
+        pickup: song.pickup, gaps: song.gaps || [],
+      });
+      renderedSongs++;
+      check(isSvg(svg), `${inst.id}/${song.id} song is valid SVG`);
+      const heads = (svg.match(/<ellipse/g) || []).length;
+      check(heads === notes.length, `${inst.id}/${song.id} draws every notehead (got ${heads}/${notes.length})`);
+      check(!svg.includes('undefined') && !svg.includes('NaN'), `${inst.id}/${song.id} song has no undefined/NaN`);
+    }
+  }
+  check(renderedSongs > 40, `the song sweep covers the curriculum (got ${renderedSongs})`);
 }
 
 // ── Melody staff engraves note values (quarter / half / whole) ─────────────

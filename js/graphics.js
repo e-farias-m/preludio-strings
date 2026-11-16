@@ -210,7 +210,7 @@ const Graphics = (() => {
   // The note at `highlightIndex` is drawn in the accent colour with a soft halo
   // so the tune reads like sheet music with the student's current note called
   // out; the rest stay in ink.
-  function melodySVG({ notes = [], highlightIndex = -1, clef = 'treble', accentColor = 'var(--accent-warm)', width = 320, perSystem = 6, beatsPerBar = 4, timeSig = null, keySig = 0, bpm = null, pickup = 0, gaps = [], repeatStart = false, repeatEnd = false, dynamics = [], articulations = [], slurs = [] }) {
+  function melodySVG({ notes = [], highlightIndex = -1, clef = 'treble', accentColor = 'var(--accent-warm)', width = 320, barsPerSystem = 4, beatsPerBar = 4, timeSig = null, keySig = 0, bpm = null, pickup = 0, gaps = [], repeatStart = false, repeatEnd = false, dynamics = [], articulations = [], slurs = [] }) {
     if (!notes.length) return '';
     const MH = 6.5;
     const MS = MH * 2;
@@ -259,25 +259,66 @@ const Graphics = (() => {
     // a note and every bar gets both of its lines. Rest gaps shift the notes
     // they precede, so bars stay whole in songs that have rests.
     const barOf = notes.map((_, g) => Math.floor(starts[g] / bpb + 1e-9));
-    const bars = [];
-    notes.forEach((_, g) => {
-      if (!bars.length || barOf[g] !== barOf[g - 1]) bars.push([]);
-      bars[bars.length - 1].push(g);
+
+    // Density-aware system splitting (recorder approach): bars per system
+    // shrinks when the tune is dense so notes never collide.
+    const MIN_SPACE = 13;
+    const PAD = 3;
+    const positiveGap = g => (typeof gapArr[g] === 'number' && gapArr[g] > 0 ? gapArr[g] : 0);
+    const durOf = n => (typeof n.duration === 'number' && n.duration > 0 ? n.duration : 1);
+    const weight = e => 1 + e.dur;
+    const denomOf = evs => Math.max(evs.reduce((s, e) => s + weight(e), 0), bpb * 2);
+    const barNeed = evs => {
+      if (!evs.length) return 0;
+      const minW = Math.min(...evs.map(weight));
+      return MIN_SPACE * denomOf(evs) / minW + 2 * PAD;
+    };
+
+    const events = [];
+    let beat = pickup;
+    notes.forEach((n, g) => {
+      const gap = positiveGap(g);
+      if (gap) { events.push({ rest: true, dur: gap, start: beat, index: g }); beat += gap; }
+      events.push({ rest: false, note: n, index: g, dur: durOf(n), start: beat });
+      beat += durOf(n);
+    });
+    const tail = positiveGap(notes.length);
+    if (tail) { events.push({ rest: true, dur: tail, start: beat }); beat += tail; }
+
+    const nBars = Math.max(1, Math.ceil(beat / bpb - 1e-9));
+    const barEvents = Array.from({ length: nBars }, () => []);
+    events.forEach(e => {
+      const bi = Math.min(nBars - 1, Math.floor(e.start / bpb + 1e-9));
+      barEvents[bi].push(e);
     });
 
+    const avail = rightX - leftX;
+    const need = Math.max(...barEvents.map(barNeed));
+    const perSystem = Math.max(1, Math.min(barsPerSystem, Math.floor(avail / need)));
+    const barW = avail / perSystem;
+    const systemCount = Math.ceil(nBars / perSystem);
+
+    // Group bars into systems (each system = array of note objects)
     const systems = [];
-    let current = [];
-    let currentCount = 0;
-    bars.forEach(bar => {
-      if (currentCount > 0 && currentCount + bar.length > perSystem) {
-        systems.push(current);
-        current = [];
-        currentCount = 0;
-      }
-      bar.forEach(g => current.push(notes[g]));
-      currentCount += bar.length;
+    for (let i = 0; i < nBars; i += perSystem) {
+      const systemBars = barEvents.slice(i, i + perSystem);
+      systems.push(systemBars.flat().filter(e => !e.rest).map(e => notes[e.index]));
+    }
+    if (!systems.length) systems.push([]);
+
+    // Compute x positions (weight-based within bars)
+    const xMap = new Map();
+    barEvents.forEach((evs, bi) => {
+      const denom = denomOf(evs);
+      const barX = leftX + (bi % perSystem) * barW;
+      let cum = 0;
+      evs.forEach(e => {
+        if (!e.rest) {
+          xMap.set(e.index, barX + PAD + ((cum + weight(e) / 2) / denom) * (barW - 2 * PAD));
+        }
+        cum += weight(e);
+      });
     });
-    if (current.length) systems.push(current);
     // Ledger notes reach above and below the staff, so the layout grows with
     // the tune's real range: a normal score keeps the fixed SYSTEM_H rhythm,
     // while ledger notes get taller systems instead of being clipped.
@@ -287,7 +328,7 @@ const Graphics = (() => {
     const lowDepth = Math.max(0, (8 - lowPos) * MH + HEAD_RY);   // ink below it
     const sysStep = SYSTEM_H + Math.max(0, lowDepth - (8 * MH + HEAD_RY)) + Math.max(0, topReach - HEAD_RY);
     const topFirstY = Math.max(TOP_LINE_Y, topReach + 12);
-    const VB_H = Math.ceil(topFirstY + (systems.length - 1) * sysStep
+    const VB_H = Math.ceil(topFirstY + (systemCount - 1) * sysStep
       + Math.max(SYSTEM_H - TOP_LINE_Y + 13, lowDepth + 12));
     const renderH = width * (VB_H / VB_W);
 
@@ -328,11 +369,6 @@ const Graphics = (() => {
       }
 
       let globalIndex = systems.slice(0, s).reduce((a, sys) => a + sys.length, 0);
-      let sysBase = Infinity;
-      let sysEnd = 0;
-      systemNotes.forEach((note, k) => { const g = globalIndex + k; sysBase = Math.min(sysBase, starts[g]); sysEnd = Math.max(sysEnd, starts[g] + durs[g] + (gapArr[g] || 0)); });
-      if (sysBase === Infinity) sysBase = 0;
-      const sysSpan = sysEnd - sysBase || 1;
 
 
       // Runs of eighth notes inside one beat share a beam — the same notation
@@ -352,7 +388,7 @@ const Graphics = (() => {
 
       systemNotes.forEach((note, k) => {
         const g = globalIndex + k;
-        const x = leftX + ((starts[g] - sysBase) / sysSpan) * (rightX - leftX);
+        const x = xMap.get(g);
         const noteY = y(note.pos);
         const lit = g === highlightIndex;
         const color = lit ? accentColor : INK;
@@ -427,7 +463,7 @@ const Graphics = (() => {
         const last = gr[gr.length - 1];
         const stemEndOf = g => {
           const n = notes[g];
-          const x = leftX + ((starts[g] - sysBase) / sysSpan) * (rightX - leftX);
+          const x = xMap.get(g);
           const noteY = y(n.pos);
           const up = n.pos <= 4;
           return [x + (up ? 6.2 : -6.2), up ? noteY - 38.5 : noteY + 38.5];
