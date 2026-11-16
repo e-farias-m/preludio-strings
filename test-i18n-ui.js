@@ -56,7 +56,7 @@ ${read('graphics.js')}
 ${read('i18n.js')}
 ${read('app.js')}
 return {
-  CURRICULUM, APP, TRANSLATIONS, NOTE_TO_SOLFEGE_PT, BADGES, setLang, getLang, translateHtml,
+  CURRICULUM, APP, TRANSLATIONS, NOTE_TO_SOLFEGE_PT, NOTE_TO_SOLFEGE_FR, BADGES, setLang, getLang, translateHtml,
   renderSelectScreen, renderSettingsScreen, renderTutorialScreen, renderMapScreen,
   renderFirstSoundScreen, renderLookupScreen, renderPracticeScreen, renderEarScreen,
   renderMetronomePanel, renderTunerPanel, renderToolWidget, renderReportScreen,

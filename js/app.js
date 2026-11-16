@@ -1642,7 +1642,7 @@ function renderSettingsScreen() {
         <div class="settings-section">
           <label class="settings-label">Appearance</label>
           <p class="settings-desc">Switch between the light "paper" theme and the dark theme.</p>
-          <button class="btn btn-secondary" data-action="toggle-theme">${getTheme() === 'light' ? '\u{1F319} Dark theme' : '\u2600\uFE0F Light theme'}</button>
+          <button class="btn btn-secondary" data-action="toggle-theme">${getTheme() === 'light' ? t('\u{1F319} Dark theme') : t('\u2600\uFE0F Light theme')}</button>
         </div>
         <div class="settings-section">
           <label class="settings-label">Student name</label>
@@ -1683,29 +1683,29 @@ function buildTutorialSlides(inst) {
     },
     {
       icon: '🗺️',
-      title: 'Follow your lesson path',
+      title: t('Follow your lesson path'),
       body: `${t('Every note and song is a stop on your')} ${t(inst.shortName)} ${t('map. Finish one step to unlock the next — a 🔒 just means the step before it is still waiting.')}`,
     },
     {
       icon: '👀',
-      title: 'See it, then check it',
-      body: 'Each new note shows its name, sound, and fingering. Tap “Hear it,” then answer a quick check to lock the note in.',
+      title: t('See it, then check it'),
+      body: t('Each new note shows its name, sound, and fingering. Tap “Hear it,” then answer a quick check to lock the note in.'),
       visual: noteArt,
     },
     {
       icon: '🎵',
-      title: 'Play it yourself',
-      body: 'Then play the note on your instrument. On a device with a microphone you can record a take and listen back to compare.',
+      title: t('Play it yourself'),
+      body: t('Then play the note on your instrument. On a device with a microphone you can record a take and listen back to compare.'),
     },
     {
       icon: '🥁',
-      title: 'Practice and tools',
-      body: 'Practice drills build speed, ear training sharpens your listening, and the metronome and tuner keep you steady and in tune.',
+      title: t('Practice and tools'),
+      body: t('Practice drills build speed, ear training sharpens your listening, and the metronome and tuner keep you steady and in tune.'),
     },
     {
       icon: '⭐',
-      title: 'Watch yourself grow',
-      body: 'You earn XP, streaks, and badges as you play, and the weekly recap shows how much you practiced. Ready? Let’s play!',
+      title: t('Watch yourself grow'),
+      body: t('You earn XP, streaks, and badges as you play, and the weekly recap shows how much you practiced. Ready? Let’s play!'),
     },
   ];
 }

@@ -30,11 +30,22 @@ var NOTE_TO_SOLFEGE_PT = {
   'A': 'Lá', 'A#': 'Lá#', 'Bb': 'Sib', 'B': 'Si'
 };
 
+var NOTE_TO_SOLFEGE_FR = {
+  'C': 'Do', 'C#': 'Do#', 'Cb': 'Dob', 'Db': 'Réb', 'D': 'Ré', 'D#': 'Ré#', 'Eb': 'Mib',
+  'E': 'Mi', 'F': 'Fa', 'F#': 'Fa#', 'Gb': 'Solb', 'G': 'Sol', 'G#': 'Sol#', 'Ab': 'Lab',
+  'A': 'La', 'A#': 'La#', 'Bb': 'Sib', 'B': 'Si'
+};
+
 function noteToSolfeggio(str) {
   if (typeof str !== 'string') return str;
   if (LANG === 'pt') {
     if (/^[A-G][#b]?$/.test(str.trim())) {
       return NOTE_TO_SOLFEGE_PT[str.trim()] || str;
+    }
+  }
+  if (LANG === 'fr') {
+    if (/^[A-G][#b]?$/.test(str.trim())) {
+      return NOTE_TO_SOLFEGE_FR[str.trim()] || str;
     }
   }
   return str;
