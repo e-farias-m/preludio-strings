@@ -1332,3 +1332,11 @@ Object.assign(TRANSLATIONS.fr, {
   "🎉 You found it! Keep it going.": "🎉 Vous l'avez trouvé ! Continuez.",
   "🎼 Fingering chart": "🎼 Tableau de doigtés",
 });
+
+// The tour's map sentence is one template so the instrument name sits where each language needs it.
+Object.assign(TRANSLATIONS.pt, {
+  "Every note and song is a stop on your {name} map. Finish one step to unlock the next — a 🔒 just means the step before it is still waiting.": "Cada nota e cada música é uma parada no seu mapa de {name}. Conclua um passo para desbloquear o próximo — um 🔒 significa apenas que o passo anterior ainda está esperando.",
+});
+Object.assign(TRANSLATIONS.fr, {
+  "Every note and song is a stop on your {name} map. Finish one step to unlock the next — a 🔒 just means the step before it is still waiting.": "Chaque note et chaque chanson est une étape de votre carte {name}. Terminez une étape pour débloquer la suivante — un 🔒 signifie juste que l’étape précédente attend encore.",
+});

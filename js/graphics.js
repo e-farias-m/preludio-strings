@@ -210,75 +210,55 @@ const Graphics = (() => {
   // The note at `highlightIndex` is drawn in the accent colour with a soft halo
   // so the tune reads like sheet music with the student's current note called
   // out; the rest stay in ink.
+  // Units are SMuFL font units: 250 per staff space.
+  const REST_GLYPH = {
+    quarter: { x_min: 1, x_max: 270, d: 'M112 -55 C174 -141 135 -84 156 -111 C183 -161 177 -147 183 -158 C181 -167 183 -163 183 -166 C166 -174 179 -173 173 -174 C143 -170 160 -174 148 -171 C137 -170 141 -170 138 -170 L125 -166 C1 -304 50 -166 1 -233 C168 -527 1 -376 63 -446 C206 -540 180 -536 194 -540 C228 -531 216 -540 226 -537 C230 -521 229 -527 230 -524 C207 -487 230 -508 219 -497 C170 -435 189 -487 173 -448 C164 -397 166 -423 164 -410 C255 -292 164 -338 194 -292 C369 -317 297 -292 344 -308 L370 -318 C382 -320 376 -320 379 -320 C389 -314 386 -320 389 -318 C336 -232 389 -297 351 -249 C236 -32 281 -166 236 -112 C236 -27 236 -30 236 -29 L238 -17 C238 -13 238 -16 238 -14 C333 199 243 71 295 140 C338 220 337 206 338 213 C333 248 338 235 333 248 C95 526 333 248 120 501 C69 537 88 533 78 537 C40 507 55 537 40 527 C46 484 40 500 42 492 C134 291 52 468 134 395 C48 108 134 238 112 176 C27 66 33 94 27 78 C42 32 27 46 42 32 Z' },
+    eighth: { x_min: 0, x_max: 247, d: 'M193 154 C96 251 193 207 150 251 C0 154 43 251 0 207 C39 81 0 124 17 98 C117 56 62 65 89 56 C173 66 137 56 157 60 C225 88 193 72 206 78 C232 89 228 89 230 89 C239 76 238 89 239 84 C238 60 239 72 239 66 C104 -343 233 39 130 -248 C145 -361 104 -360 137 -361 C196 -347 161 -361 181 -359 C341 161 200 -344 341 161 C356 217 347 187 354 210 C338 240 356 232 341 239 C323 235 336 240 331 240 C193 140 312 226 240 140 Z' },
+    half: { x_min: 0, x_max: 282, d: 'M406 35 L406 167 C369 204 406 189 389 204 L37 204 C0 167 16 204 0 189 L0 35 C37 -3 0 14 16 -3 L369 -3 C406 35 389 -3 406 14 Z' },
+    whole: { x_min: 0, x_max: 282, d: 'M406 -157 L406 -24 C369 13 406 -3 389 13 L37 13 C0 -24 16 13 0 -3 L0 -157 C37 -194 0 -177 16 -194 L369 -194 C406 -157 389 -194 406 -177 Z' },
+  };
+
+  // `ref` is the staff position the glyph origin sits on: the middle line for
+  // quarter, eighth and half rests, and the fourth line for a whole rest.
+  function restSVG(x, y, dur, color, staffSpace = STAFF_SPACE) {
+    const kind = dur >= 4 ? 'whole' : dur >= 2 ? 'half' : dur >= 1 ? 'quarter' : 'eighth';
+    const glyph = REST_GLYPH[kind];
+    const ref = kind === 'whole' ? 6 : 4;
+    const s = (staffSpace / 250) * 0.8;
+    const tx = x - ((glyph.x_min + glyph.x_max) / 2) * s;
+    return `<path class="rest rest-${kind}" d="${glyph.d}" fill="${color}" transform="translate(${tx.toFixed(2)} ${y(ref).toFixed(2)}) scale(${s.toFixed(5)} ${(-s).toFixed(5)})"/>`;
+  }
+
   function melodySVG({ notes = [], highlightIndex = -1, clef = 'treble', accentColor = 'var(--accent-warm)', width = 320, barsPerSystem = 4, beatsPerBar = 4, timeSig = null, keySig = 0, bpm = null, pickup = 0, gaps = [], repeatStart = false, repeatEnd = false, dynamics = [], articulations = [], slurs = [] }) {
     if (!notes.length) return '';
     const MH = 6.5;
     const MS = MH * 2;
-    // Rest outlines are Bravura's (SIL OFL, see fonts/OFL.txt), like the clefs.
-    const REST_GLYPH = {
-      quarter: { x_min: 1, x_max: 270, d: 'M112 -55 C174 -141 135 -84 156 -111 C183 -161 177 -147 183 -158 C181 -167 183 -163 183 -166 C166 -174 179 -173 173 -174 C143 -170 160 -174 148 -171 C137 -170 141 -170 138 -170 L125 -166 C1 -304 50 -166 1 -233 C168 -527 1 -376 63 -446 C206 -540 180 -536 194 -540 C228 -531 216 -540 226 -537 C230 -521 229 -527 230 -524 C207 -487 230 -508 219 -497 C170 -435 189 -487 173 -448 C164 -397 166 -423 164 -410 C255 -292 164 -338 194 -292 C369 -317 297 -292 344 -308 L370 -318 C382 -320 376 -320 379 -320 C389 -314 386 -320 389 -318 C336 -232 389 -297 351 -249 C236 -32 281 -166 236 -112 C236 -27 236 -30 236 -29 L238 -17 C238 -13 238 -16 238 -14 C333 199 243 71 295 140 C338 220 337 206 338 213 C333 248 338 235 333 248 C95 526 333 248 120 501 C69 537 88 533 78 537 C40 507 55 537 40 527 C46 484 40 500 42 492 C134 291 52 468 134 395 C48 108 134 238 112 176 C27 66 33 94 27 78 C42 32 27 46 42 32 Z' },
-      eighth: { x_min: 0, x_max: 247, d: 'M193 154 C96 251 193 207 150 251 C0 154 43 251 0 207 C39 81 0 124 17 98 C117 56 62 65 89 56 C173 66 137 56 157 60 C225 88 193 72 206 78 C232 89 228 89 230 89 C239 76 238 89 239 84 C238 60 239 72 239 66 C104 -343 233 39 130 -248 C145 -361 104 -360 137 -361 C196 -347 161 -361 181 -359 C341 161 200 -344 341 161 C356 217 347 187 354 210 C338 240 356 232 341 239 C323 235 336 240 331 240 C193 140 312 226 240 140 Z' },
-      half: { x_min: 0, x_max: 282, d: 'M406 35 L406 167 C369 204 406 189 389 204 L37 204 C0 167 16 204 0 189 L0 35 C37 -3 0 14 16 -3 L369 -3 C406 35 389 -3 406 14 Z' },
-      whole: { x_min: 0, x_max: 282, d: 'M406 -157 L406 -24 C369 13 406 -3 389 13 L37 13 C0 -24 16 13 0 -3 L0 -157 C37 -194 0 -177 16 -194 L369 -194 C406 -157 389 -194 406 -177 Z' },
-    };
-    const restSVG = (x, y, dur, color) => {
-      const kind = dur >= 4 ? 'whole' : dur >= 2 ? 'half' : dur >= 1 ? 'quarter' : 'eighth';
-      const glyph = REST_GLYPH[kind];
-      const ref = kind === 'whole' ? 6 : 4;
-      const s = (MS / 250) * 0.8;
-      const tx = x - ((glyph.x_min + glyph.x_max) / 2) * s;
-      return `<path class="rest rest-${kind}" d="${glyph.d}" fill="${color}" transform="translate(${tx.toFixed(2)} ${y(ref).toFixed(2)}) scale(${s.toFixed(5)} ${(-s).toFixed(5)})"/>`;
-    };
     const VB_W = 360;
-    const HEAD_RX = 6.6;       // melody notehead — kept identical in every project
-    const HEAD_RY = 4.2;
-    // Each system leaves room for the clef and measure numbers, while keeping
-    // the staff compact so it doesn't dominate the whole page.
     const SYSTEM_H = 90;
     const TOP_LINE_Y = 31;
-    const sigX = 82;           // time signature, centred
-    const leftX = 110;         // first note sits past the enlarged clef + time signature
-    const lineStartX = 20;
-    const rightX = VB_W - 12;
-
-    // Durations drive the bar lines. Bars start at beat 0 unless the song
-    // declares a pickup (anacrusis) length. A bar line falls on every bar
-    // boundary, and systems are split only between bars.
-    const durs = notes.map(n => (typeof n.duration === 'number' && n.duration > 0 ? n.duration : 1));
+    const LEFT_X = 16;
+    const RIGHT_X = VB_W - 12;
+    const KEY_X = 54;
+    const PAD = 3;
+    const MIN_SPACE = 13;   // closest centre-to-centre distance between noteheads
+    const HEAD_RX = 6.6;
+    const HEAD_RY = 4.2;
     const bpb = timeSig ? timeSig.num * 4 / timeSig.den : beatsPerBar;
     const sigNum = timeSig ? timeSig.num : beatsPerBar;
     const sigDen = timeSig ? timeSig.den : 4;
+    const keyCount = Math.min(Math.abs(keySig) || 0, 7);
+    const keyStep = 6.5;
+    const sysStartX = KEY_X + keyCount * keyStep + 24;
+    const avail = RIGHT_X - sysStartX;
     const gapArr = Array.isArray(gaps) ? gaps : [];
-    const starts = [];
-    let beatPos = pickup;
-    for (let g = 0; g < notes.length; g++) {
-      starts.push(beatPos);
-      beatPos += (typeof gapArr[g] === 'number' ? gapArr[g] : 0) + durs[g];
-    }
-    // A note belongs to the bar it starts in, so a bar line never cuts through
-    // a note and every bar gets both of its lines. Rest gaps shift the notes
-    // they precede, so bars stay whole in songs that have rests.
-    const barOf = notes.map((_, g) => Math.floor(starts[g] / bpb + 1e-9));
-
-    // Density-aware system splitting (recorder approach): bars per system
-    // shrinks when the tune is dense so notes never collide.
-    const MIN_SPACE = 13;
-    const PAD = 3;
     const positiveGap = g => (typeof gapArr[g] === 'number' && gapArr[g] > 0 ? gapArr[g] : 0);
     const durOf = n => (typeof n.duration === 'number' && n.duration > 0 ? n.duration : 1);
-    const weight = e => 1 + e.dur;
-    const denomOf = evs => Math.max(evs.reduce((s, e) => s + weight(e), 0), bpb * 2);
-    const barNeed = evs => {
-      if (!evs.length) return 0;
-      const minW = Math.min(...evs.map(weight));
-      return MIN_SPACE * denomOf(evs) / minW + 2 * PAD;
-    };
 
     const events = [];
     let beat = pickup;
     notes.forEach((n, g) => {
       const gap = positiveGap(g);
-      if (gap) { events.push({ rest: true, dur: gap, start: beat, index: g }); beat += gap; }
+      if (gap) { events.push({ rest: true, dur: gap, start: beat }); beat += gap; }
       events.push({ rest: false, note: n, index: g, dur: durOf(n), start: beat });
       beat += durOf(n);
     });
@@ -292,33 +272,20 @@ const Graphics = (() => {
       barEvents[bi].push(e);
     });
 
-    const avail = rightX - leftX;
+    // Event weights set the spacing: a quarter gets more room than an eighth,
+    // and the bar must be wide enough that the tightest noteheads keep MIN_SPACE.
+    // Bars per system shrink when the tune is dense, so the notes never collide.
+    const weight = e => 1 + e.dur;
+    const denomOf = evs => Math.max(evs.reduce((s, e) => s + weight(e), 0), bpb * 2);
+    const barNeed = evs => {
+      if (!evs.length) return 0;
+      const minW = Math.min(...evs.map(weight));
+      return MIN_SPACE * denomOf(evs) / minW + 2 * PAD;
+    };
     const need = Math.max(...barEvents.map(barNeed));
     const perSystem = Math.max(1, Math.min(barsPerSystem, Math.floor(avail / need)));
     const barW = avail / perSystem;
     const systemCount = Math.ceil(nBars / perSystem);
-
-    // Group bars into systems (each system = array of note objects)
-    const systems = [];
-    for (let i = 0; i < nBars; i += perSystem) {
-      const systemBars = barEvents.slice(i, i + perSystem);
-      systems.push(systemBars.flat().filter(e => !e.rest).map(e => notes[e.index]));
-    }
-    if (!systems.length) systems.push([]);
-
-    // Compute x positions (weight-based within bars)
-    const xMap = new Map();
-    barEvents.forEach((evs, bi) => {
-      const denom = denomOf(evs);
-      const barX = leftX + (bi % perSystem) * barW;
-      let cum = 0;
-      evs.forEach(e => {
-        if (!e.rest) {
-          xMap.set(e.index, barX + PAD + ((cum + weight(e) / 2) / denom) * (barW - 2 * PAD));
-        }
-        cum += weight(e);
-      });
-    });
     // Ledger notes reach above and below the staff, so the layout grows with
     // the tune's real range: a normal score keeps the fixed SYSTEM_H rhythm,
     // while ledger notes get taller systems instead of being clipped.
@@ -332,179 +299,168 @@ const Graphics = (() => {
       + Math.max(SYSTEM_H - TOP_LINE_Y + 13, lowDepth + 12));
     const renderH = width * (VB_H / VB_W);
 
+    const xOf = new Map();
+    barEvents.forEach((evs, bi) => {
+      const denom = denomOf(evs);
+      const barX = sysStartX + (bi % perSystem) * barW;
+      let cum = 0;
+      evs.forEach(e => {
+        xOf.set(e, barX + PAD + ((cum + weight(e) / 2) / denom) * (barW - 2 * PAD));
+        cum += weight(e);
+      });
+    });
+
+    // Runs of eighth notes inside one beat share a beam. In compound meters
+    // such as 6/8 the beat is a dotted quarter, so a beam spans three eighths.
+    const beamUnit = timeSig && timeSig.den === 8 && timeSig.num % 3 === 0 ? 1.5 : 1;
+    const beamGroups = [];
+    barEvents.forEach(evs => {
+      let cur = null;
+      evs.forEach(e => {
+        const beamable = !e.rest && e.dur === 0.5;
+        const prev = cur && cur[cur.length - 1];
+        if (beamable && prev && Math.floor(prev.start / beamUnit + 1e-9) === Math.floor(e.start / beamUnit + 1e-9)) cur.push(e);
+        else if (beamable) { cur = [e]; beamGroups.push(cur); }
+        else cur = null;
+      });
+    });
+    const beamUp = new Map();
+    beamGroups.filter(g => g.length > 1).forEach(g => {
+      const up = g.reduce((s, e) => s + e.note.pos, 0) / g.length <= 4;
+      g.forEach(e => beamUp.set(e, up));
+    });
+    const stemUpOf = e => (beamUp.has(e) ? beamUp.get(e) : e.note.pos <= 4);
+
     let svg = `<svg viewBox="0 0 ${VB_W} ${VB_H}" width="${width}" height="${renderH.toFixed(1)}" xmlns="http://www.w3.org/2000/svg">`;
+    const clefName = CLEF_GLYPH[clef] ? clef : 'treble';
+    const cmet = CLEF_GLYPH[clefName];
+    const keyPos = keySig > 0 ? KEY_SHARP_POS : KEY_FLAT_POS;
+    const keyGlyph = keySig > 0 ? '\u266F' : '\u266D';
     const noteInfo = {};
 
-    systems.forEach((systemNotes, s) => {
+    for (let s = 0; s < systemCount; s++) {
       const topLineY = topFirstY + s * sysStep;
       const y = pos => topLineY + (8 - pos) * MH;
-      // A short last system ends after its final bar instead of stretching a
-      // mostly empty staff across the full width.
       const firstBar = s * perSystem;
       const bars = Math.min(perSystem, nBars - firstBar);
-      const endX = leftX + bars * barW;
+      const endX = sysStartX + bars * barW;
+      const line = (x1, y1, x2, y2, w) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${INK}" stroke-width="${w}"/>`;
 
-      for (let p = 0; p <= 8; p += 2) {
-        svg += `<line x1="${lineStartX}" y1="${y(p)}" x2="${endX}" y2="${y(p)}" stroke="${INK}" stroke-width="1.0"/>`;
-      }
-      const clefName = CLEF_GLYPH[clef] ? clef : 'treble';
-      const cmet = CLEF_GLYPH[clefName];
+      for (let p = 0; p <= 8; p += 2) svg += line(LEFT_X, y(p), endX, y(p), 1.0);
+      svg += line(LEFT_X, y(8), LEFT_X, y(0), 1.0);
       svg += clefAt(clefName, CLEF_MELODY_LEFT[clefName], MS * CLEF_MELODY_SCALE, y(cmet.refPos), INK);
-      // Key signature: sharps (or flats) stack to the right of the clef, one
-      // per accidental in the key, before the time signature takes its place.
-      if (s === 0) {
-        const keyCount = Math.min(Math.abs(keySig) || 0, 7);
-        if (keyCount > 0) {
-          const keyPos = keySig > 0 ? KEY_SHARP_POS : KEY_FLAT_POS;
-          const keyGlyph = keySig > 0 ? '\u266F' : '\u266D';
-          for (let i = 0; i < keyCount; i++) {
-            svg += `<text x="${KEY_X + i * 6.5}" y="${y(keyPos[i]) + 5}" font-size="14" fill="${INK}" font-family="Georgia, serif">${keyGlyph}</text>`;
-          }
-        }
+      for (let i = 0; i < keyCount; i++) {
+        svg += `<text x="${KEY_X + i * keyStep}" y="${y(keyPos[i]) + 5}" font-size="14" fill="${INK}" font-family="Georgia, serif">${keyGlyph}</text>`;
       }
-      // Time signature: "4" over "4" centred on the middle of the staff.
       if (s === 0) {
+        const sigX = KEY_X + keyCount * keyStep + 10;
         svg += `<text x="${sigX}" y="${y(6) + 5}" font-size="21" font-weight="700" text-anchor="middle" font-family="Georgia, serif" fill="${INK}">${sigNum}</text>`;
         svg += `<text x="${sigX}" y="${y(2) + 7}" font-size="21" font-weight="700" text-anchor="middle" font-family="Georgia, serif" fill="${INK}">${sigDen}</text>`;
       }
       // Tempo marking — the song's own written tempo, placed above the staff
       // on the first system.
       if (s === 0 && bpm) {
-        svg += `<text x="${sigX}" y="${y(8) - 16}" font-size="11" font-weight="700" text-anchor="middle" font-family="Georgia, serif" fill="${INK}">\u2669=${bpm}</text>`;
+        svg += `<text x="${KEY_X}" y="${y(8) - 16}" font-size="11" font-weight="700" text-anchor="middle" font-family="Georgia, serif" fill="${INK}">\u2669=${bpm}</text>`;
       }
 
-      let globalIndex = systems.slice(0, s).reduce((a, sys) => a + sys.length, 0);
-
-
-      // Runs of eighth notes inside one beat share a beam — the same notation
-      // a human arranger writes. A beam never crosses a bar line or a rest gap.
-      const sysBeamGroups = [];
-      let curBeam = [];
-      let prevG = -1;
-      for (let k = 0; k < systemNotes.length; k++) {
-        const g = globalIndex + k;
-        const isEighth = durs[g] === 0.5;
-        const canJoin = isEighth && curBeam.length > 0 && prevG >= 0 && barOf[g] === barOf[prevG] && (gapArr[g] || 0) === 0 && (gapArr[prevG] || 0) === 0;
-        if (canJoin) curBeam.push(g);
-        else { if (curBeam.length > 1) sysBeamGroups.push(curBeam); curBeam = isEighth ? [g] : []; }
-        prevG = g;
+      for (let b = 1; b < bars; b++) svg += line(sysStartX + b * barW, y(8), sysStartX + b * barW, y(0), 1.0);
+      // Barline at end of this system/bar-group: thick for the tune's end,
+      // thin when it only ends a system. End-repeat adds dots + thin + thick.
+      const isLast = s === systemCount - 1;
+      if (isLast && repeatEnd) {
+        svg += `<circle cx="${endX - 7}" cy="${y(5)}" r="1.2" fill="${INK}"/><circle cx="${endX - 7}" cy="${y(3)}" r="1.2" fill="${INK}"/>`;
+        svg += line(endX - 3.5, y(8), endX - 3.5, y(0), 1.0);
+        svg += line(endX, y(8), endX, y(0), 3.0);
+      } else {
+        svg += line(endX, y(8), endX, y(0), isLast ? 3.0 : 1.0);
       }
-      if (curBeam.length > 1) sysBeamGroups.push(curBeam);
-
-      // Interior bar lines sit on the exact bar boundaries, so a system's
-      // bars keep the same width whether or not it is the last one.
-      for (let b = 1; b < bars; b++) {
-        const bx = leftX + b * barW;
-        svg += `<line x1="${bx}" y1="${y(8)}" x2="${bx}" y2="${y(0)}" stroke="${INK}" stroke-width="1.0"/>`;
+      // Start-repeat at the very beginning of the tune.
+      if (s === 0 && repeatStart) {
+        const sx = sysStartX;
+        svg += line(sx, y(8), sx, y(0), 3.0);
+        svg += line(sx + 3.5, y(8), sx + 3.5, y(0), 1.0);
+        svg += `<circle cx="${sx + 7}" cy="${y(5)}" r="1.2" fill="${INK}"/><circle cx="${sx + 7}" cy="${y(3)}" r="1.2" fill="${INK}"/>`;
       }
 
-      systemNotes.forEach((note, k) => {
-        const g = globalIndex + k;
-        const x = xMap.get(g);
-        const noteY = y(note.pos);
-        const lit = g === highlightIndex;
-        const color = lit ? accentColor : INK;
-        const duration = durs[g];
-        const gap = gapArr[g] || 0;
-        const effective = gap > 0 ? gap : duration;
-        const open = effective >= 2;                     // half and longer: hollow
-        const stemmed = effective < 4;                  // whole notes lose the stem
-
-        if (lit) svg += `<circle cx="${x}" cy="${noteY}" r="15.5" fill="${accentColor}" opacity="0.18"/>`;
-        if (gap > 0) {
-          // A rest stands for the gap, drawn from the engraved Bravura rest
-          // glyph — the same notation a human arranger would write.
-          svg += restSVG(x, y, gap, color);
-        } else {
-          const up = note.pos <= 4;
-          noteInfo[g] = { x, noteY, y, up, pos: note.pos, system: s };
+      for (let b = 0; b < bars; b++) {
+        barEvents[firstBar + b].forEach(e => {
+          const x = xOf.get(e);
+          if (e.rest) { svg += restSVG(x, y, e.dur, INK, MS); return; }
+          const note = e.note;
+          const color = e.index === highlightIndex ? accentColor : INK;
+          const noteY = y(note.pos);
+          const up = stemUpOf(e);
+          if (e.index === highlightIndex) svg += `<circle cx="${x}" cy="${noteY}" r="15.5" fill="${accentColor}" opacity="0.18"/>`;
+          noteInfo[e.index] = { x, noteY, y, up, pos: note.pos, system: s };
+          svg += `<g data-note-index="${e.index}">`;
           ledgerPositions(note.pos).forEach(p => {
             svg += `<line x1="${x - 11}" y1="${y(p)}" x2="${x + 11}" y2="${y(p)}" stroke="${color}" stroke-width="1.2"/>`;
           });
           if (note.accidental) {
             svg += `<text x="${x - 18}" y="${noteY + 7}" font-size="20" fill="${color}" font-family="Georgia, serif">${note.accidental}</text>`;
           }
-          // Hollow noteheads read clearly against the staff, so they skip the dark
-          // separating ring a filled head needs; both keep the same rotation.
-          const headFill = open ? 'none' : color;
-          const headStroke = open ? color : OPEN;
-          const headStrokeW = open ? 1.9 : 1.5;
-          svg += `<ellipse cx="${x}" cy="${noteY}" rx="${HEAD_RX}" ry="${HEAD_RY}" fill="${headFill}" stroke="${headStroke}" stroke-width="${headStrokeW}" transform="rotate(-18 ${x} ${noteY})"/>`;
-          // A dotted value (dotted quarter = 1.5, dotted half = 3) carries a dot.
-          if (duration === 1.5 || duration === 3) {
-            svg += `<circle cx="${x + 12}" cy="${noteY}" r="1.8" fill="${color}"/>`;
-          }
-          if (stemmed) {
-            // Notes that belong to a beam group get their stem from the beam
-            // itself, so a beamed pair never draws two overlapping stems.
-            const inBeam = sysBeamGroups.some(gr => gr.includes(g));
-            if (!inBeam) {
-              const stemX = up ? x + 6.2 : x - 6.2;
-              const stemEnd = up ? noteY - 38.5 : noteY + 38.5;
-              svg += `<line x1="${stemX}" y1="${noteY}" x2="${stemX}" y2="${stemEnd}" stroke="${color}" stroke-width="1.5"/>`;
-            }
+          const open = e.dur >= 2;
+          svg += `<ellipse cx="${x}" cy="${noteY}" rx="${HEAD_RX}" ry="${HEAD_RY}" fill="${open ? 'none' : color}" stroke="${open ? color : OPEN}" stroke-width="${open ? 1.9 : 1.5}" transform="rotate(-18 ${x} ${noteY})"/>`;
+          if (e.dur === 1.5 || e.dur === 3) svg += `<circle cx="${x + 12}" cy="${noteY}" r="1.8" fill="${color}"/>`;
+          if (e.dur < 4) {
+            const stemX = up ? x + HEAD_RX - 0.4 : x - HEAD_RX + 0.4;
+            const stemEnd = up ? noteY - 38.5 : noteY + 38.5;
+            svg += `<line x1="${stemX}" y1="${noteY}" x2="${stemX}" y2="${stemEnd}" stroke="${color}" stroke-width="1.5"/>`;
           }
           // Articulations: placed above or below the note depending on stem direction.
-          (articulations || []).filter(a => a && a.index === g).forEach(a => {
+          const artList = (articulations || []).filter(a => a && a.index === e.index);
+          artList.forEach(a => {
             const placeAbove = !up;
-            const ay = placeAbove ? (y(Math.max(note.pos, 8)) - 13) : (y(Math.min(note.pos, 0)) + 15);
+            const ay = placeAbove ? (up ? noteY - 48 : y(Math.max(note.pos, 8)) - 13) : (up ? y(Math.min(note.pos, 0)) + 15 : noteY + 48);
             if (a.type === 'staccato') svg += `<circle cx="${x}" cy="${ay}" r="2.2" fill="${color}"/>`;
             else if (a.type === 'tenuto') svg += `<line x1="${x - 6.5}" y1="${ay}" x2="${x + 6.5}" y2="${ay}" stroke="${color}" stroke-width="1.9"/>`;
             else if (a.type === 'accent') svg += `<path d="M${x - 6.5} ${ay - 4.5} L${x + 6.5} ${ay} L${x - 6.5} ${ay + 4.5}" fill="none" stroke="${color}" stroke-width="1.8"/>`;
             else if (a.type === 'marcato') svg += `<path d="M${x - 5.5} ${ay + 5.5} L${x} ${ay - 5.5} L${x + 5.5} ${ay + 5.5}" fill="none" stroke="${color}" stroke-width="1.8"/>`;
             else if (a.type === 'fermata') svg += `<path d="M${x - 10} ${ay} Q${x} ${ay - 11} ${x + 10} ${ay}" fill="none" stroke="${color}" stroke-width="1.8"/><circle cx="${x}" cy="${ay - 1}" r="1.9" fill="${color}"/>`;
           });
+          svg += `</g>`;
           // Dynamics: placed below the staff near the note.
-          (dynamics || []).filter(d => d && d.index === g).forEach((d, di) => {
-            svg += `<text x="${x}" y="${y(0) + 20 + di * 8}" font-size="11" font-style="italic" font-weight="700" text-anchor="middle" font-family="Georgia, serif" fill="${INK}">${String(d.text || '')}</text>`;
+          const dynList = (dynamics || []).filter(d => d && d.index === e.index);
+          dynList.forEach((d, di) => {
+            svg += `<text x="${x}" y="${y(0) + 21 + di * 8}" font-size="11" font-style="italic" font-weight="700" text-anchor="middle" font-family="Georgia, serif" fill="${INK}">${String(d.text || '')}</text>`;
           });
-        }
-      });
+        });
+      }
 
-      // Beams: connect the stems of each run of eighth notes. Pairs get a
-      // curved beam, longer runs a straight one through the first and last stem.
-      sysBeamGroups.forEach(gr => {
-        if (gr.length < 2) return;
-        const first = gr[0];
-        const last = gr[gr.length - 1];
-        const stemEndOf = g => {
-          const n = notes[g];
-          const x = xMap.get(g);
-          const noteY = y(n.pos);
-          const up = n.pos <= 4;
-          return [x + (up ? 6.2 : -6.2), up ? noteY - 38.5 : noteY + 38.5];
-        };
-        const [x1, y1] = stemEndOf(first);
-        const [x2, y2] = stemEndOf(last);
-        const color = gr.some(g => g === highlightIndex) ? accentColor : INK;
-        if (gr.length === 2) {
-          const midX = (x1 + x2) / 2;
-          const midY = (y1 + y2) / 2;
-          svg += `<path d="M${x1} ${y1} Q${midX} ${midY} ${x2} ${y2}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round"/>`;
+      beamGroups.forEach(g => {
+        const first = g[0];
+        const last = g[g.length - 1];
+        const bi0 = Math.min(nBars - 1, Math.floor(first.start / bpb + 1e-9));
+        if (bi0 < firstBar || bi0 >= firstBar + bars) return;
+        const color = g.some(e => e.index === highlightIndex) ? accentColor : INK;
+        if (g.length === 1) {
+          const e = first;
+          const up = stemUpOf(e);
+          const sx = xOf.get(e) + (up ? HEAD_RX - 0.4 : -HEAD_RX + 0.4);
+          const sy = up ? y(e.note.pos) - 38.5 : y(e.note.pos) + 38.5;
+          const ex = sx - (up ? 11 : -11);
+          const ey = up ? y(e.note.pos) - 25 : y(e.note.pos) + 25;
+          const cx = (sx + ex) / 2;
+          const cy = (sy + ey) / 2;
+          svg += `<path d="M${sx} ${sy} Q${cx} ${cy} ${ex} ${ey}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round"/>`;
+        } else if (g.length === 2) {
+          const e1 = first;
+          const e2 = last;
+          const up = stemUpOf(e1);
+          const p1 = [xOf.get(e1) + (up ? HEAD_RX - 0.4 : -HEAD_RX + 0.4), up ? y(e1.note.pos) - 38.5 : y(e1.note.pos) + 38.5];
+          const p2 = [xOf.get(e2) + (up ? HEAD_RX - 0.4 : -HEAD_RX + 0.4), up ? y(e2.note.pos) - 38.5 : y(e2.note.pos) + 38.5];
+          const midX = (p1[0] + p2[0]) / 2;
+          const midY = (p1[1] + p2[1]) / 2;
+          svg += `<path d="M${p1[0]} ${p1[1]} Q${midX} ${midY} ${p2[0]} ${p2[1]}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round"/>`;
         } else {
+          const up = beamUp.get(first);
+          const ends = e => [xOf.get(e) + (up ? HEAD_RX - 0.4 : -HEAD_RX + 0.4), y(e.note.pos) + (up ? -38.5 : 38.5)];
+          const [x1, y1] = ends(first);
+          const [x2, y2] = ends(last);
           svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="4.0"/>`;
         }
       });
-
-      // Bar line at the end of every system; the closing bar line of the piece
-      // is thick, the line that only ends a system stays thin. End-repeat adds
-      // dots + thin + thick.
-      const isLastSystem = s === systems.length - 1;
-      if (isLastSystem && repeatEnd) {
-        svg += `<circle cx="${endX - 7}" cy="${y(5)}" r="1.2" fill="${INK}"/><circle cx="${endX - 7}" cy="${y(3)}" r="1.2" fill="${INK}"/>`;
-        svg += `<line x1="${endX - 3.5}" y1="${y(8)}" x2="${endX - 3.5}" y2="${y(0)}" stroke="${INK}" stroke-width="1.0"/>`;
-        svg += `<line x1="${endX}" y1="${y(8)}" x2="${endX}" y2="${y(0)}" stroke="${INK}" stroke-width="3.0"/>`;
-      } else {
-        svg += `<line x1="${endX}" y1="${y(8)}" x2="${endX}" y2="${y(0)}" stroke="${INK}" stroke-width="${isLastSystem ? 3.0 : 1.0}"/>`;
-      }
-      // Start-repeat at the beginning of the first system.
-      if (s === 0 && repeatStart) {
-        const rx = lineStartX + 2;
-        svg += `<line x1="${rx}" y1="${y(8)}" x2="${rx}" y2="${y(0)}" stroke="${INK}" stroke-width="3.0"/>`;
-        svg += `<line x1="${rx + 3.5}" y1="${y(8)}" x2="${rx + 3.5}" y2="${y(0)}" stroke="${INK}" stroke-width="1.0"/>`;
-        svg += `<circle cx="${rx + 7}" cy="${y(5)}" r="1.2" fill="${INK}"/><circle cx="${rx + 7}" cy="${y(3)}" r="1.2" fill="${INK}"/>`;
-      }
-    });
+    }
 
     // Slurs: smooth arcs connecting two noteheads (same-system only).
     (slurs || []).forEach(sl => {

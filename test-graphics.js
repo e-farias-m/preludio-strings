@@ -336,7 +336,7 @@ for (const inst of Object.values(CURRICULUM)) {
     const lines = svg.match(/<line x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)" stroke="var\(--dg-ink\)" stroke-width="(1(?:\.0)?|3(?:\.0|\.5)?)"/g) || [];
     return lines.filter(l => {
       const m = l.match(/x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)"/);
-      return m[1] === m[3] && Math.abs(parseFloat(m[2]) - parseFloat(m[4])) >= 40 && m[2] !== m[4];
+      return m[1] === m[3] && Math.abs(parseFloat(m[2]) - parseFloat(m[4])) >= 40 && m[1] !== '16';
     }).length;
   };
   const q = n => Array.from({ length: n }, () => ({ pos: 2, accidental: null, duration: 1 }));
@@ -362,7 +362,7 @@ for (const inst of Object.values(CURRICULUM)) {
   // leave one bar, so the staff ends at a quarter of the usable width instead
   // of stretching an empty staff across the page.
   const staffEnds = svg => [...new Set(
-    [...svg.matchAll(/<line x1="20" y1="([\d.]+)" x2="([\d.]+)" y2="\1"/g)].map(m => +m[2])
+    [...svg.matchAll(/<line x1="16" y1="([\d.]+)" x2="([\d.]+)" y2="\1"/g)].map(m => +m[2])
   )];
   const fiveBars = Graphics.melodySVG({ notes: q(20), accentColor: '#e0a020' });
   const ends = staffEnds(fiveBars);
