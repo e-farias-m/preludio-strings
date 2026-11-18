@@ -186,9 +186,9 @@ const Graphics = (() => {
 
     // Stem
     if (stemUp) {
-      svg += `<line x1="${noteX + 7}" y1="${noteY}" x2="${noteX + 7}" y2="${noteY - 46}" stroke="${accentColor}" stroke-width="2"/>`;
+      svg += `<line x1="${noteX + 7}" y1="${noteY}" x2="${noteX + 7}" y2="${noteY - 56}" stroke="${accentColor}" stroke-width="2"/>`;
     } else {
-      svg += `<line x1="${noteX - 7}" y1="${noteY}" x2="${noteX - 7}" y2="${noteY + 46}" stroke="${accentColor}" stroke-width="2"/>`;
+      svg += `<line x1="${noteX - 7}" y1="${noteY}" x2="${noteX - 7}" y2="${noteY + 56}" stroke="${accentColor}" stroke-width="2"/>`;
     }
 
     svg += `</svg>`;
