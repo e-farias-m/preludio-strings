@@ -285,7 +285,28 @@ const Graphics = (() => {
     const need = Math.max(...barEvents.map(barNeed));
     const perSystem = Math.max(1, Math.min(barsPerSystem, Math.floor(avail / need)));
     const barW = avail / perSystem;
-    const systemCount = Math.ceil(nBars / perSystem);
+    const barsPerSys = [];
+    let _rem = nBars;
+    while (_rem > 0) {
+      let take = Math.min(perSystem, _rem);
+      if (_rem - take === 1 && take > 1) take -= 1;
+      barsPerSys.push(take);
+      _rem -= take;
+    }
+    if (barsPerSys.length >= 2 && barsPerSys[barsPerSys.length - 1] === 1
+        && barsPerSys[barsPerSys.length - 2] > 1) {
+      barsPerSys[barsPerSys.length - 2] -= 1;
+      barsPerSys[barsPerSys.length - 1] = 2;
+    }
+    const systemCount = barsPerSys.length;
+    const systemFirstBar = [];
+    const barSystemOffset = new Array(nBars);
+    let _idx = 0;
+    for (let _s = 0; _s < barsPerSys.length; _s++) {
+      systemFirstBar.push(_idx);
+      for (let _b = 0; _b < barsPerSys[_s]; _b++) barSystemOffset[_idx + _b] = _idx;
+      _idx += barsPerSys[_s];
+    }
     // Ledger notes reach above and below the staff, so the layout grows with
     // the tune's real range: a normal score keeps the fixed SYSTEM_H rhythm,
     // while ledger notes get taller systems instead of being clipped.
@@ -302,7 +323,7 @@ const Graphics = (() => {
     const xOf = new Map();
     barEvents.forEach((evs, bi) => {
       const denom = denomOf(evs);
-      const barX = sysStartX + (bi % perSystem) * barW;
+      const barX = sysStartX + (bi - barSystemOffset[bi]) * barW;
       let cum = 0;
       evs.forEach(e => {
         xOf.set(e, barX + PAD + ((cum + weight(e) / 2) / denom) * (barW - 2 * PAD));
@@ -341,8 +362,8 @@ const Graphics = (() => {
     for (let s = 0; s < systemCount; s++) {
       const topLineY = topFirstY + s * sysStep;
       const y = pos => topLineY + (8 - pos) * MH;
-      const firstBar = s * perSystem;
-      const bars = Math.min(perSystem, nBars - firstBar);
+      const firstBar = systemFirstBar[s];
+      const bars = barsPerSys[s];
       const endX = sysStartX + bars * barW;
       const line = (x1, y1, x2, y2, w) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${INK}" stroke-width="${w}"/>`;
 
